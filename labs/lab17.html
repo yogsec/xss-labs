@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSS Lab #17: sessionStorage + Search Filter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #facc15;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 { color: #facc15; }
+        .header a { color: #38bdf8; text-decoration: none; }
+        .lab-box {
+            background: #1e293b;
+            border-left: 5px solid #dc2626;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .badge {
+            background: #dc2626;
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+        .output {
+            background: #0f172a;
+            border: 2px solid #dc2626;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            min-height: 120px;
+        }
+        .info {
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        code {
+            background: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #facc15;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        .btn-danger {
+            background: #dc2626;
+        }
+        .btn-success {
+            background: #10b981;
+        }
+        .btn-secondary {
+            background: #475569;
+        }
+        .btn-warning {
+            background: #f59e0b;
+        }
+        .solution {
+            background: #0f172a;
+            border: 1px solid #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        .solution.show { display: block; }
+        .data-box {
+            background: #0a0f1a;
+            padding: 8px;
+            border-radius: 5px;
+            margin: 5px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        input, textarea {
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            padding: 8px;
+            border-radius: 5px;
+            width: 100%;
+            margin: 5px 0;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .search-box input {
+            flex: 1;
+            margin: 0;
+        }
+        .item-list {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .alert-box {
+            background: #facc1520;
+            border-left: 3px solid #facc15;
+            padding: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>XSS-Labs</h1>
+    <p>Created by <strong>Abhinav Singwal</strong> · <a href="https://github.com/yogsec">GitHub</a> · <a href="https://linktr.ee/abhinavsingwal">Linktree</a></p>
+    <p><a href="index.html" style="color: #facc15;">← Back to all labs</a></p>
+</div>
+
+<div class="lab-box">
+    <div class="badge">🔹 Lab #17 · Stored XSS + Search</div>
+    <h2>sessionStorage + Search Filter</h2>
+    <p>Data stored in <code>sessionStorage</code> is searched and results are executed using <code>eval()</code>.</p>
+    <p><strong>Goal:</strong> Add JavaScript code, then search for "alert" to execute it.</p>
+
+    <div class="alert-box">
+        <strong>TEST:</strong><br>
+        1. Type <code>alert("XSS!")</code> in the textarea and click "Add Data"<br>
+        2. Type <code>alert</code> in search box and click "Search"<br>
+        3. Alert pops immediately!<br>
+        4. Reload page and search again - still works!
+    </div>
+
+    <div class="info">
+        <strong>Add Data to sessionStorage:</strong>
+        <textarea id="dataInput" placeholder='alert("XSS from search!")'>alert("XSS from search!")</textarea>
+        <button id="addDataBtn" class="btn-success">Add Data</button>
+        <button id="clearStorageBtn" class="btn-warning">Clear All</button>
+    </div>
+
+    <div class="info">
+        <strong>Quick XSS Payloads (click to add):</strong><br>
+        <button id="payload1Btn" class="btn-danger">alert('XSS')</button>
+        <button id="payload2Btn" class="btn-danger">alert(document.cookie)</button>
+        <button id="payload3Btn" class="btn-danger">prompt('Hacked')</button>
+    </div>
+
+    <div class="info">
+        <strong>Search Filter (VULNERABLE):</strong>
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search... (try 'alert')">
+            <button id="searchBtn" class="btn-danger">Search (XSS vulnerable)</button>
+            <button id="showAllBtn" class="btn-secondary">Show All</button>
+        </div>
+    </div>
+
+    <div class="info">
+        <strong>Stored Data:</strong>
+        <div id="storageDisplay" class="item-list" style="background:#0a0f1a; padding:8px; border-radius:5px;">
+            No data
+        </div>
+    </div>
+
+    <div class="output" id="searchResults">
+        <span style="color:#64748b">Search results will appear here</span>
+    </div>
+
+    <details style="margin: 15px 0;">
+        <summary style="cursor: pointer; color: #facc15;">Hints</summary>
+        <ul>
+            <li>Add JavaScript code like: <code>alert("XSS")</code></li>
+            <li>Search for "alert" to trigger the XSS</li>
+            <li>The search uses eval() which executes any JavaScript!</li>
+        </ul>
+    </details>
+
+    <button id="solutionBtn">Show Solution</button>
+    
+    <div id="solutionPanel" class="solution">
+        <h3>Solution</h3>
+        <p><strong>Working Payloads:</strong></p>
+        <ul>
+            <li><code>alert('XSS')</code></li>
+            <li><code>alert(document.cookie)</code></li>
+            <li><code>prompt('Hacked!')</code></li>
+        </ul>
+        <p><strong>Vulnerable Code:</strong> <code>eval(match)</code></p>
+        <p><strong>Fix:</strong> NEVER use eval() with user input.</p>
+    </div>
+</div>
+
+<script>
+    var searchResults = document.getElementById('searchResults');
+    var storageDisplay = document.getElementById('storageDisplay');
+    var dataInput = document.getElementById('dataInput');
+    var searchInput = document.getElementById('searchInput');
+    var addDataBtn = document.getElementById('addDataBtn');
+    var clearStorageBtn = document.getElementById('clearStorageBtn');
+    var searchBtn = document.getElementById('searchBtn');
+    var showAllBtn = document.getElementById('showAllBtn');
+    var solutionBtn = document.getElementById('solutionBtn');
+    var solutionPanel = document.getElementById('solutionPanel');
+
+    var STORAGE_KEY = 'searchableData';
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    function loadData() {
+        var data = sessionStorage.getItem(STORAGE_KEY);
+        if (data) {
+            try {
+                return JSON.parse(data);
+            } catch(e) {
+                return [];
+            }
+        }
+        return [];
+    }
+
+    function saveData(data) {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        displayAllData();
+    }
+
+    function displayAllData() {
+        var data = loadData();
+        if (data.length === 0) {
+            storageDisplay.innerHTML = '<span style="color:#64748b">No data stored</span>';
+            return;
+        }
+        var html = '';
+        for (var i = 0; i < data.length; i++) {
+            html += '<div class="data-box"><strong>' + (i+1) + '.</strong> <code>' + escapeHtml(data[i]) + '</code></div>';
+        }
+        storageDisplay.innerHTML = html;
+    }
+
+    //VULNERABLE SEARCH FUNCTION
+    function searchData() {
+        var searchTerm = searchInput.value.trim().toLowerCase();
+        var data = loadData();
+        
+        if (searchTerm === '') {
+            searchResults.innerHTML = '<span style="color:#64748b;">Enter a search term</span>';
+            return;
+        }
+        
+        // Find matches
+        var matches = [];
+        for (var i = 0; i < data.length; i++) {
+            if (data[i].toLowerCase().includes(searchTerm)) {
+                matches.push(data[i]);
+            }
+        }
+        
+        if (matches.length === 0) {
+            searchResults.innerHTML = '<span style="color:#64748b;">No matches found for "' + escapeHtml(searchTerm) + '"</span>';
+            return;
+        }
+        
+        // Display matches
+        var resultsHtml = '<span style="color:#facc15;">Found ' + matches.length + ' match(es) for "' + escapeHtml(searchTerm) + '":</span><br><br>';
+        
+        for (var i = 0; i < matches.length; i++) {
+            resultsHtml += '<div class="data-box" style="border-color:#dc2626;"><strong>Match ' + (i+1) + ':</strong><br><code>' + escapeHtml(matches[i]) + '</code></div>';
+        }
+        resultsHtml += '<div style="margin-top:10px; font-size:12px; color:#ef4444;">Executing matches via eval()...</div>';
+        searchResults.innerHTML = resultsHtml;
+        
+        //VULNERABLE - EXECUTE EACH MATCH WITH eval()
+        for (var i = 0; i < matches.length; i++) {
+            try {
+                eval(matches[i]);
+            } catch(e) {
+                console.log('Error executing:', matches[i], e);
+            }
+        }
+    }
+
+    function addData() {
+        var newData = dataInput.value.trim();
+        if (!newData) {
+            alert('Enter some data');
+            return;
+        }
+        var data = loadData();
+        data.push(newData);
+        saveData(data);
+        dataInput.value = '';
+        alert('Data added! Now search for part of it to trigger XSS.');
+        console.log('Added:', newData);
+    }
+
+    function clearAllData() {
+        if (confirm('Clear all data?')) {
+            sessionStorage.removeItem(STORAGE_KEY);
+            displayAllData();
+            searchResults.innerHTML = '<span style="color:#64748b;">Storage cleared</span>';
+        }
+    }
+
+    function showAllData() {
+        var data = loadData();
+        if (data.length === 0) {
+            searchResults.innerHTML = '<span style="color:#64748b;">No data stored</span>';
+            return;
+        }
+        var html = '<span style="color:#facc15;">All stored data (' + data.length + ' items):</span><br><br>';
+        for (var i = 0; i < data.length; i++) {
+            html += '<div class="data-box"><strong>' + (i+1) + ':</strong> ' + escapeHtml(data[i]) + '</div>';
+        }
+        searchResults.innerHTML = html;
+    }
+
+    function addPayload(payload) {
+        var data = loadData();
+        data.push(payload);
+        saveData(data);
+        alert('Payload added: ' + payload + '\n\nNow search for part of it to trigger XSS!');
+    }
+
+    // Button handlers
+    addDataBtn.onclick = addData;
+    clearStorageBtn.onclick = clearAllData;
+    searchBtn.onclick = searchData;
+    showAllBtn.onclick = showAllData;
+    
+    document.getElementById('payload1Btn').onclick = function() { addPayload('alert("XSS from sessionStorage!")'); };
+    document.getElementById('payload2Btn').onclick = function() { addPayload('alert("Cookies: " + document.cookie)'); };
+    document.getElementById('payload3Btn').onclick = function() { addPayload('prompt("XSS Attack! Enter your name:")'); };
+    
+    searchInput.onkeypress = function(e) {
+        if (e.key === 'Enter') searchData();
+    };
+
+    // Solution toggle
+    var visible = false;
+    solutionBtn.onclick = function() {
+        visible = !visible;
+        if (visible) {
+            solutionPanel.classList.add('show');
+            solutionBtn.textContent = 'Hide Solution';
+        } else {
+            solutionPanel.classList.remove('show');
+            solutionBtn.textContent = 'Show Solution';
+        }
+    };
+
+    // Initial load
+    displayAllData();
+    console.log('Lab #17 Ready - Add data, then search for "alert" to trigger XSS');
+</script>
+</body>
+</html>

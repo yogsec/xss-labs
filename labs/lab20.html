@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSS Lab #20: Base64 Encoded → Decoded & Injected</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #facc15;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 { color: #facc15; }
+        .header a { color: #38bdf8; text-decoration: none; }
+        .lab-box {
+            background: #1e293b;
+            border-left: 5px solid #dc2626;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .badge {
+            background: #dc2626;
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+        .output {
+            background: #0f172a;
+            border: 2px solid #dc2626;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            min-height: 120px;
+        }
+        .info {
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        code {
+            background: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #facc15;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        .btn-danger {
+            background: #dc2626;
+        }
+        .btn-success {
+            background: #10b981;
+        }
+        .btn-secondary {
+            background: #475569;
+        }
+        .btn-warning {
+            background: #f59e0b;
+        }
+        .solution {
+            background: #0f172a;
+            border: 1px solid #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        .solution.show { display: block; }
+        input, textarea {
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            padding: 8px;
+            border-radius: 5px;
+            width: 100%;
+            margin: 5px 0;
+            font-family: monospace;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .base64-box {
+            background: #0a0f1a;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        .alert-box {
+            background: #facc1520;
+            border-left: 3px solid #facc15;
+            padding: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>XSS-Labs</h1>
+    <p>Created by <strong>Abhinav Singwal</strong> · <a href="https://github.com/yogsec">GitHub</a> · <a href="https://linktr.ee/abhinavsingwal">Linktree</a></p>
+    <p><a href="index.html" style="color: #facc15;">← Back to all labs</a></p>
+</div>
+
+<div class="lab-box">
+    <div class="badge">🔹 Lab #20 · Base64 Encoded XSS</div>
+    <h2>Stored as Base64 → Decoded & Injected</h2>
+    <p>Malicious payloads are encoded in Base64, stored in <code>localStorage</code>, then decoded and injected using <code>eval()</code>.</p>
+    <p><strong>Goal:</strong> Encode JavaScript in Base64, store it, then decode and execute it.</p>
+
+    <div class="alert-box">
+        <strong>TEST:</strong><br>
+        1. Click "Encode & Store XSS Payload 1"<br>
+        2. Click "Decode & Execute" → Alert pops!<br>
+        3. Reload page → Data persists! Execute again → Alert pops again!
+    </div>
+
+    <div class="info">
+        <strong>Encode & Store JavaScript in Base64:</strong>
+        <textarea id="payloadInput" placeholder='alert("XSS from Base64!")'>alert("XSS from Base64!")</textarea>
+        <button id="encodeStoreBtn" class="btn-success">Encode & Store in localStorage</button>
+        <button id="clearBtn" class="btn-warning">Clear Stored Data</button>
+    </div>
+
+    <div class="info">
+        <strong>Quick XSS Payloads (click to encode & store):</strong><br>
+        <button id="payload1Btn" class="btn-danger">alert('XSS!')</button>
+        <button id="payload2Btn" class="btn-danger">alert(document.cookie)</button>
+        <button id="payload3Btn" class="btn-danger">prompt('Hacked!')</button>
+        <button id="payload4Btn" class="btn-danger">confirm('XSS Attack')</button>
+    </div>
+
+    <div class="info">
+        <strong>Base64 Data in localStorage:</strong>
+        <div class="base64-box" id="base64Display">No data stored</div>
+    </div>
+
+    <div class="info">
+        <strong>Decoded Payload (safe preview):</strong>
+        <div class="base64-box" id="decodedDisplay">No data</div>
+    </div>
+
+    <div class="output" id="vulnerableOutput">
+        <span style="color:#64748b">Click "Decode & Execute" to run the Base64 payload</span>
+    </div>
+
+    <div class="info">
+        <button id="executeBtn" class="btn-danger">Decode & Execute (XSS via eval)</button>
+        <button id="reloadPageBtn" class="btn-secondary">Reload Page (Data Persists!)</button>
+    </div>
+
+    <details style="margin: 15px 0;">
+        <summary style="cursor: pointer; color: #facc15;">Hints</summary>
+        <ul>
+            <li>JavaScript code is encoded to Base64 before storing</li>
+            <li>When executed, it's decoded back and run with eval()</li>
+            <li>Try: <code>alert("XSS")</code> encoded to <code>YWxlcnQoIlhTUyIp</code></li>
+            <li>Attackers use Base64 to bypass input filters!</li>
+        </ul>
+    </details>
+
+    <button id="solutionBtn">Show Solution</button>
+    
+    <div id="solutionPanel" class="solution">
+        <h3>Solution</h3>
+        <p><strong>Base64 XSS Attack:</strong></p>
+        <ul>
+            <li>Original: <code>alert("XSS")</code></li>
+            <li>Base64: <code>YWxlcnQoIlhTUyIp</code></li>
+            <li>Stored in localStorage, then decoded and executed</li>
+        </ul>
+        <p><strong>Vulnerable Code:</strong></p>
+        <pre style="background:#000; padding:10px; border-radius:5px; overflow-x:auto;">// Read Base64 from storage
+let base64Data = localStorage.getItem('payload');
+
+// Decode and execute
+let decoded = atob(base64Data);
+eval(decoded);  // XSS!</pre>
+        <p><strong>Fix:</strong> NEVER use eval() with decoded user data.</p>
+    </div>
+</div>
+
+<script>
+    var base64Display = document.getElementById('base64Display');
+    var decodedDisplay = document.getElementById('decodedDisplay');
+    var vulnerableOutput = document.getElementById('vulnerableOutput');
+    var payloadInput = document.getElementById('payloadInput');
+    var encodeStoreBtn = document.getElementById('encodeStoreBtn');
+    var clearBtn = document.getElementById('clearBtn');
+    var executeBtn = document.getElementById('executeBtn');
+    var reloadPageBtn = document.getElementById('reloadPageBtn');
+    var solutionBtn = document.getElementById('solutionBtn');
+    var solutionPanel = document.getElementById('solutionPanel');
+
+    var STORAGE_KEY = 'base64Payload';
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    function updateDisplays() {
+        var base64Data = localStorage.getItem(STORAGE_KEY);
+        
+        if (base64Data) {
+            base64Display.innerHTML = '<code>' + escapeHtml(base64Data) + '</code>';
+            try {
+                var decoded = atob(base64Data);
+                decodedDisplay.innerHTML = '<code>' + escapeHtml(decoded) + '</code>';
+            } catch(e) {
+                decodedDisplay.innerHTML = '<span style="color:#ef4444">Invalid Base64</span>';
+            }
+        } else {
+            base64Display.innerHTML = '<span style="color:#64748b">No data stored</span>';
+            decodedDisplay.innerHTML = '<span style="color:#64748b">No data</span>';
+        }
+    }
+
+    function encodeAndStore() {
+        var payload = payloadInput.value.trim();
+        if (!payload) {
+            alert('Enter a JavaScript payload');
+            return;
+        }
+        
+        var base64 = btoa(payload);
+        localStorage.setItem(STORAGE_KEY, base64);
+        updateDisplays();
+        
+        alert('Payload encoded and stored!\n\nBase64: ' + base64 + '\n\nClick "Decode & Execute" to run it.');
+        console.log('Stored Base64:', base64);
+        console.log('Original:', payload);
+    }
+
+    function clearData() {
+        localStorage.removeItem(STORAGE_KEY);
+        updateDisplays();
+        vulnerableOutput.innerHTML = '<span style="color:#64748b">Data cleared. Store a new Base64 payload.</span>';
+        alert('Stored data cleared!');
+    }
+
+    // VULNERABLE EXECUTION FUNCTION
+    function decodeAndExecute() {
+        var base64Data = localStorage.getItem(STORAGE_KEY);
+        
+        if (!base64Data) {
+            vulnerableOutput.innerHTML = '<span style="color:#64748b">No Base64 data in localStorage. Encode & store a payload first.</span>';
+            return;
+        }
+        
+        var decoded = '';
+        try {
+            decoded = atob(base64Data);
+        } catch(e) {
+            vulnerableOutput.innerHTML = '<span style="color:#ef4444">Error decoding Base64: ' + escapeHtml(e.message) + '</span>';
+            return;
+        }
+        
+        // Display info
+        var html = '<span style="color:#facc15;">Base64 Payload from localStorage:</span><br>';
+        html += '<div class="base64-box" style="margin-top:5px;"><strong>Base64:</strong><br><code>' + escapeHtml(base64Data) + '</code></div>';
+        html += '<div class="base64-box"><strong>Decoded:</strong><br><code>' + escapeHtml(decoded) + '</code></div>';
+        html += '<div style="margin-top: 10px; font-size: 12px; color: #ef4444;">Executing decoded code via eval()...</div>';
+        vulnerableOutput.innerHTML = html;
+        
+        // VULNERABLE - EXECUTE DECODED CODE WITH eval()
+        try {
+            eval(decoded);
+        } catch(e) {
+            vulnerableOutput.innerHTML += '<div style="margin-top: 10px; color: #f59e0b;">Error: ' + escapeHtml(e.message) + '</div>';
+        }
+    }
+
+    function storeExamplePayload(payload) {
+        payloadInput.value = payload;
+        encodeAndStore();
+    }
+
+    // Button handlers
+    encodeStoreBtn.onclick = encodeAndStore;
+    clearBtn.onclick = clearData;
+    executeBtn.onclick = decodeAndExecute;
+    reloadPageBtn.onclick = function() { location.reload(); };
+    
+    document.getElementById('payload1Btn').onclick = function() { storeExamplePayload('alert("XSS from Base64!")'); };
+    document.getElementById('payload2Btn').onclick = function() { storeExamplePayload('alert("Cookies: " + document.cookie)'); };
+    document.getElementById('payload3Btn').onclick = function() { storeExamplePayload('prompt("XSS Attack! Enter your name:")'); };
+    document.getElementById('payload4Btn').onclick = function() { storeExamplePayload('confirm("XSS Attack Successful!")'); };
+
+    // Solution toggle
+    var visible = false;
+    solutionBtn.onclick = function() {
+        visible = !visible;
+        if (visible) {
+            solutionPanel.classList.add('show');
+            solutionBtn.textContent = 'Hide Solution';
+        } else {
+            solutionPanel.classList.remove('show');
+            solutionBtn.textContent = 'Show Solution';
+        }
+    };
+
+    // Initial load
+    updateDisplays();
+    
+    console.log('Lab #20 Ready - Base64 Encoded XSS');
+    console.log('JavaScript is encoded to Base64, stored, then decoded and executed with eval()');
+</script>
+</body>
+</html>

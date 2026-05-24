@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSS Lab #2: POST Parameter Reflection | Frontend XSS Challenge</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 2rem 1rem;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #334155;
+        }
+        .header h1 {
+            font-size: 2rem;
+            color: #facc15;
+        }
+        .header .author {
+            color: #94a3b8;
+            margin-top: 0.5rem;
+        }
+        .header .author a {
+            color: #38bdf8;
+            text-decoration: none;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1rem;
+            color: #38bdf8;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .lab-card {
+            background: #1e293b;
+            border-radius: 1rem;
+            padding: 1.8rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+        }
+        .lab-title {
+            font-size: 1.6rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #facc15;
+        }
+        .lab-badge {
+            display: inline-block;
+            background: #dc2626;
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .description {
+            color: #cbd5e1;
+            margin-bottom: 1.5rem;
+            border-left: 3px solid #facc15;
+            padding-left: 1rem;
+        }
+        .vulnerable-area {
+            background: #0f172a;
+            border: 2px solid #dc2626;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .vulnerable-label {
+            color: #ef4444;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .output-box {
+            background: #0a0f1a;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            min-height: 100px;
+            font-family: monospace;
+            word-break: break-all;
+            border: 1px solid #334155;
+            margin: 1rem 0;
+        }
+        .form-group {
+            margin: 1rem 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+        input, textarea {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        button {
+            background: #3b82f6;
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            margin-right: 0.5rem;
+        }
+        button:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+        .btn-danger {
+            background: #dc2626;
+        }
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+        .btn-secondary {
+            background: #475569;
+        }
+        .btn-secondary:hover {
+            background: #334155;
+        }
+        .status-box {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background: #0a0f1a;
+            border-radius: 0.5rem;
+            font-family: monospace;
+        }
+        .hints {
+            background: #0f172a;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin: 1rem 0;
+            border: 1px solid #334155;
+        }
+        .hints summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: #94a3b8;
+        }
+        .hints ul {
+            margin-top: 0.75rem;
+            margin-left: 1.5rem;
+            color: #cbd5e1;
+        }
+        .hints li {
+            margin: 0.5rem 0;
+        }
+        code {
+            background: #00000050;
+            padding: 0.2rem 0.4rem;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #facc15;
+        }
+        .solution-btn {
+            background: #10b981;
+            width: 100%;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            color: white;
+            transition: all 0.2s;
+            margin-top: 0.5rem;
+        }
+        .solution-btn:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+        .solution-panel {
+            background: #0f172a;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            border: 1px solid #10b981;
+            display: none;
+        }
+        .solution-panel.show {
+            display: block;
+        }
+        .solution-panel h3 {
+            color: #10b981;
+            margin-bottom: 1rem;
+        }
+        .solution-panel pre {
+            background: #00000070;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: monospace;
+            font-size: 0.8rem;
+            margin: 1rem 0;
+        }
+        hr {
+            border-color: #334155;
+            margin: 1rem 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            color: #64748b;
+            font-size: 0.8rem;
+        }
+        .example-buttons {
+            margin-top: 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .example-btn {
+            background: #334155;
+            padding: 0.3rem 0.8rem;
+            font-size: 0.7rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a href="index.html" class="back-link">← Back to all labs</a>
+
+    <div class="header">
+        <h1>XSS-Labs</h1>
+        <div class="author">
+            Created by <strong>Abhinav Singwal</strong> · 
+            <a href="https://github.com/yogsec" target="_blank">GitHub</a> · 
+            <a href="https://linktr.ee/abhinavsingwal" target="_blank">Linktree</a>
+        </div>
+    </div>
+
+    <div class="lab-card">
+        <div class="lab-badge">🔹 Lab #2 · POST Parameter Reflection</div>
+        <div class="lab-title">POST Data XSS using sessionStorage</div>
+        <div class="description">
+            This lab simulates a POST request. Data submitted via the form is stored in <code>sessionStorage</code> (simulating server response) and then reflected using <code>innerHTML</code> — NO sanitization.<br>
+            <strong>Goal:</strong> Execute JavaScript by submitting a malicious payload through the form.
+        </div>
+
+        <div class="vulnerable-area">
+            <div class="vulnerable-label">VULNERABLE TARGET (POST Data)</div>
+            
+            <!-- Submission Form -->
+            <form id="postForm">
+                <div class="form-group">
+                    <label for="postData">Enter your data (XSS vulnerable):</label>
+                    <textarea id="postData" name="data" placeholder='Example: &lt;img src=x onerror=alert("XSS")&gt;' rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn-danger">POST (Submit)</button>
+                <button type="button" id="clearData" class="btn-secondary">🗑️ Clear Data</button>
+            </form>
+
+            <!-- Example payloads for quick testing -->
+            <div class="example-buttons">
+                <span style="font-size:0.7rem; color:#94a3b8;">Quick test:</span>
+                <button type="button" class="example-btn" data-payload='<img src=x onerror=alert("XSS")>'>img onerror</button>
+                <button type="button" class="example-btn" data-payload='<body onload=alert(document.domain)>'>body onload</button>
+                <button type="button" class="example-btn" data-payload='<svg onload=alert(1)>'>svg onload</button>
+                <button type="button" class="example-btn" data-payload='<input onfocus=alert(1) autofocus>'>input autofocus</button>
+            </div>
+
+            <!-- Reflected Output (VULNERABLE) -->
+            <div class="output-box" id="vulnerableOutput">
+                <span style="color:#64748b">No POST data yet. Submit the form above.</span>
+            </div>
+            
+            <div class="status-box">
+                <code>sessionStorage['postData']</code> = <code id="storedDataDisplay">(empty)</code>
+            </div>
+        </div>
+
+        <details class="hints">
+            <summary>Hints (click to expand)</summary>
+            <ul>
+                <li>The vulnerable code uses <code>innerHTML</code> to render data from <code>sessionStorage</code>.</li>
+                <li>Try submitting: <code>&lt;img src=x onerror=alert('XSS')&gt;</code></li>
+                <li>Try submitting: <code>&lt;body onload=alert(document.cookie)&gt;</code></li>
+                <li>Try submitting: <code>&lt;svg onload=alert('Hacked')&gt;</code></li>
+                <li>Data persists in <code>sessionStorage</code> — refresh the page and the XSS will trigger again!</li>
+            </ul>
+        </details>
+
+        <button id="solutionBtn" class="solution-btn">Show Solution</button>
+        <div id="solutionPanel" class="solution-panel">
+            <h3>Solution & Explanation</h3>
+            
+            <p><strong>Working Payloads (copy-paste into the form):</strong></p>
+            <ul>
+                <li><code>&lt;img src=x onerror=alert('XSS')&gt;</code> — Image error event</li>
+                <li><code>&lt;body onload=alert(document.cookie)&gt;</code> — Body onload</li>
+                <li><code>&lt;svg onload=alert(1)&gt;</code> — SVG onload</li>
+                <li><code>&lt;input onfocus=alert(1) autofocus&gt;</code> — Input autofocus</li>
+            </ul>
+            
+            <p><strong>🔧 Why it works:</strong><br>
+            The application takes user input from the form, saves it to <code>sessionStorage</code> (simulating a POST request response), then reads it back and injects it into the DOM using <code>innerHTML</code> with NO escaping.</p>
+            
+            <pre>// VULNERABLE CODE:
+// 1. Save POST data
+sessionStorage.setItem('postData', userInput);
+
+// 2. Reflect using innerHTML (XSS!)
+const data = sessionStorage.getItem('postData');
+document.getElementById('output').innerHTML = data;</pre>
+            
+            <p><strong>How to Fix:</strong></p>
+            <pre>// FIX #1: Use textContent instead of innerHTML
+document.getElementById('output').textContent = data;
+
+// FIX #2: Escape HTML entities
+function escapeHtml(str) {
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+document.getElementById('output').innerHTML = escapeHtml(data);</pre>
+            
+            <hr>
+            <p><strong>Key Point:</strong> This lab simulates a POST request entirely in frontend. In a real app, the POST data would go to a server, then be reflected back. Here, <code>sessionStorage</code> acts as the "server response" storage.</p>
+            <p style="color:#888; font-size:12px;">Educational purpose only — runs entirely in your browser.</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        ⚡ XSS-Labs | Lab #2: POST Parameter Reflection using sessionStorage
+    </div>
+</div>
+
+<script>
+    // DOM elements
+    const vulnerableOutput = document.getElementById('vulnerableOutput');
+    const storedDataDisplay = document.getElementById('storedDataDisplay');
+    const postDataTextarea = document.getElementById('postData');
+    const postForm = document.getElementById('postForm');
+    const clearDataBtn = document.getElementById('clearData');
+    const solutionBtn = document.getElementById('solutionBtn');
+    const solutionPanel = document.getElementById('solutionPanel');
+
+    const STORAGE_KEY = 'postData';
+
+    // VULNERABLE FUNCTION: Reads from sessionStorage and injects via innerHTML
+    function reflectStoredData() {
+        const storedData = sessionStorage.getItem(STORAGE_KEY);
+        
+        if (storedData && storedData.trim() !== '') {
+            // Show stored value
+            let displayValue = storedData;
+            if (storedData.length > 40) {
+                displayValue = storedData.substring(0, 40) + '...';
+            }
+            storedDataDisplay.textContent = displayValue;
+            
+            // VULNERABLE SINK: innerHTML with user input
+            // This WILL execute JavaScript if payload contains event handlers
+            vulnerableOutput.innerHTML = `
+                <span style="color:#facc15;">Reflected POST data:</span><br>
+                <code style="display:block; margin-top:8px; background:#000; padding:8px; border-radius:4px;">${storedData}</code>
+                <div style="margin-top:8px; font-size:11px; color:#ef4444;">Vulnerable: innerHTML with no sanitization</div>
+            `;
+        } else {
+            storedDataDisplay.textContent = '(empty)';
+            vulnerableOutput.innerHTML = '<span style="color:#64748b;">No POST data. Submit the form to see reflection.</span>';
+        }
+    }
+
+    // Handle form submission (simulate POST)
+    function handlePostSubmit(event) {
+        event.preventDefault();
+        
+        const userInput = postDataTextarea.value;
+        
+        if (!userInput || userInput.trim() === '') {
+            alert('Please enter some data to submit.');
+            return;
+        }
+        
+        // Save to sessionStorage (simulating server storing POST data)
+        sessionStorage.setItem(STORAGE_KEY, userInput);
+        
+        // Reflect immediately (VULNERABLE)
+        reflectStoredData();
+        
+        // Clear textarea
+        postDataTextarea.value = '';
+        
+        console.log('POST data saved to sessionStorage:', userInput);
+    }
+
+    // Clear stored data
+    function clearStoredData() {
+        sessionStorage.removeItem(STORAGE_KEY);
+        reflectStoredData();
+        postDataTextarea.value = '';
+        alert('sessionStorage cleared!');
+    }
+
+    // Toggle solution
+    let solutionVisible = false;
+    solutionBtn.addEventListener('click', () => {
+        solutionVisible = !solutionVisible;
+        if (solutionVisible) {
+            solutionPanel.classList.add('show');
+            solutionBtn.textContent = 'Hide Solution';
+            solutionBtn.style.background = '#475569';
+        } else {
+            solutionPanel.classList.remove('show');
+            solutionBtn.textContent = 'Show Solution';
+            solutionBtn.style.background = '#10b981';
+        }
+    });
+
+    // Example payload buttons
+    document.querySelectorAll('.example-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const payload = btn.getAttribute('data-payload');
+            postDataTextarea.value = payload;
+        });
+    });
+
+    // Event listeners
+    postForm.addEventListener('submit', handlePostSubmit);
+    clearDataBtn.addEventListener('click', clearStoredData);
+
+    // Load existing data on page load
+    reflectStoredData();
+
+    console.log('Lab #2 Ready — POST XSS simulation. Submit <img src=x onerror=alert(1)> to see XSS!');
+</script>
+</body>
+</html>

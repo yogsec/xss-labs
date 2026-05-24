@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSS Lab #18: localStorage JSON → Parsed & Injected</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #facc15;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 { color: #facc15; }
+        .header a { color: #38bdf8; text-decoration: none; }
+        .lab-box {
+            background: #1e293b;
+            border-left: 5px solid #dc2626;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .badge {
+            background: #dc2626;
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+        .output {
+            background: #0f172a;
+            border: 2px solid #dc2626;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            min-height: 120px;
+        }
+        .info {
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        code {
+            background: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #facc15;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        .btn-danger {
+            background: #dc2626;
+        }
+        .btn-success {
+            background: #10b981;
+        }
+        .btn-secondary {
+            background: #475569;
+        }
+        .btn-warning {
+            background: #f59e0b;
+        }
+        .solution {
+            background: #0f172a;
+            border: 1px solid #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        .solution.show { display: block; }
+        input, textarea {
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            padding: 8px;
+            border-radius: 5px;
+            width: 100%;
+            margin: 5px 0;
+            font-family: monospace;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        .user-card {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .user-card strong {
+            color: #facc15;
+        }
+        .user-list {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        .json-preview {
+            background: #0a0f1a;
+            padding: 8px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 11px;
+            margin-top: 5px;
+        }
+        .alert-box {
+            background: #facc1520;
+            border-left: 3px solid #facc15;
+            padding: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>XSS-Labs</h1>
+    <p>Created by <strong>Abhinav Singwal</strong> · <a href="https://github.com/yogsec">GitHub</a> · <a href="https://linktr.ee/abhinavsingwal">Linktree</a></p>
+    <p><a href="index.html" style="color: #facc15;">← Back to all labs</a></p>
+</div>
+
+<div class="lab-box">
+    <div class="badge">🔹 Lab #18 · Stored XSS (JSON in localStorage)</div>
+    <h2>localStorage as JSON → Parsed & Executed</h2>
+    <p>User data is stored as JSON in <code>localStorage</code>, then parsed and executed using <code>eval()</code>.</p>
+    <p><strong>Goal:</strong> Store JavaScript code in JSON, then execute it by clicking "Execute Payloads".</p>
+
+    <div class="alert-box">
+        <strong>TEST:</strong><br>
+        1. Click "Add XSS Payload 1" below<br>
+        2. Click "Execute All Payloads" → Alert pops!<br>
+        3. Reload page → Data persists! Click "Execute" again → Alert pops again!
+    </div>
+
+    <div class="info">
+        <strong>Add JavaScript Payload (stored as JSON in localStorage):</strong>
+        <textarea id="payloadInput" placeholder='alert("XSS from localStorage JSON!")'>alert("XSS from localStorage JSON!")</textarea>
+        <button id="addPayloadBtn" class="btn-success">Add Payload</button>
+        <button id="clearPayloadsBtn" class="btn-warning">Clear All Payloads</button>
+    </div>
+
+    <div class="info">
+        <strong>Quick XSS Payloads (click to add):</strong><br>
+        <button id="payload1Btn" class="btn-danger">alert('XSS!')</button>
+        <button id="payload2Btn" class="btn-danger">alert(document.cookie)</button>
+        <button id="payload3Btn" class="btn-danger">prompt('Hacked!')</button>
+        <button id="payload4Btn" class="btn-danger">confirm('XSS Attack')</button>
+    </div>
+
+    <div class="info">
+        <strong>Raw JSON in localStorage:</strong>
+        <div class="json-preview" id="rawJsonDisplay">No data</div>
+    </div>
+
+    <div class="info">
+        <strong>Stored Payloads (safe display):</strong>
+        <div id="payloadsList" class="user-list" style="min-height: 100px; background:#0a0f1a; padding:8px; border-radius:5px;">
+            <span style="color:#64748b">No payloads. Add one above.</span>
+        </div>
+    </div>
+
+    <div class="output" id="vulnerableOutput">
+        <span style="color:#64748b">Click "Execute All Payloads" to trigger XSS</span>
+    </div>
+
+    <div class="info">
+        <button id="executeBtn" class="btn-danger">Execute All Payloads (XSS)</button>
+        <button id="reloadPageBtn" class="btn-secondary">Reload Page (Data Persists!)</button>
+    </div>
+
+    <details style="margin: 15px 0;">
+        <summary style="cursor: pointer; color: #facc15;">Hints</summary>
+        <ul>
+            <li>Payloads are stored as JSON array in localStorage</li>
+            <li>Click "Execute All Payloads" - each payload is run with eval()</li>
+            <li>Add payload: <code>alert("XSS")</code></li>
+            <li>Reload page - data persists! Execute again - XSS triggers again!</li>
+        </ul>
+    </details>
+
+    <button id="solutionBtn">Show Solution</button>
+    
+    <div id="solutionPanel" class="solution">
+        <h3>Solution</h3>
+        <p><strong>Working Payloads (JavaScript code):</strong></p>
+        <ul>
+            <li><code>alert('XSS')</code></li>
+            <li><code>alert(document.cookie)</code></li>
+            <li><code>prompt('Hacked!')</code></li>
+            <li><code>confirm('XSS Attack')</code></li>
+        </ul>
+        <p><strong>Vulnerable Code:</strong></p>
+        <pre style="background:#000; padding:10px; border-radius:5px; overflow-x:auto;">// Parse JSON from localStorage
+let payloads = JSON.parse(localStorage.getItem('payloads')) || [];
+
+// VULNERABLE: eval() with stored payloads
+payloads.forEach(function(payload) {
+    eval(payload);
+});</pre>
+        <p><strong>Fix:</strong> NEVER use eval() with stored user data.</p>
+    </div>
+</div>
+
+<script>
+    var payloadsList = document.getElementById('payloadsList');
+    var vulnerableOutput = document.getElementById('vulnerableOutput');
+    var rawJsonDisplay = document.getElementById('rawJsonDisplay');
+    var payloadInput = document.getElementById('payloadInput');
+    var addPayloadBtn = document.getElementById('addPayloadBtn');
+    var clearPayloadsBtn = document.getElementById('clearPayloadsBtn');
+    var executeBtn = document.getElementById('executeBtn');
+    var reloadPageBtn = document.getElementById('reloadPageBtn');
+    var solutionBtn = document.getElementById('solutionBtn');
+    var solutionPanel = document.getElementById('solutionPanel');
+
+    var STORAGE_KEY = 'jsonPayloads';
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    function loadPayloads() {
+        var data = localStorage.getItem(STORAGE_KEY);
+        if (data) {
+            try {
+                return JSON.parse(data);
+            } catch(e) {
+                return [];
+            }
+        }
+        return [];
+    }
+
+    function savePayloads(payloads) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payloads));
+        updateRawJsonDisplay();
+        displayPayloadsSafe();
+    }
+
+    function updateRawJsonDisplay() {
+        var data = localStorage.getItem(STORAGE_KEY);
+        if (data) {
+            rawJsonDisplay.innerHTML = '<code>' + escapeHtml(data) + '</code>';
+        } else {
+            rawJsonDisplay.innerHTML = '<span style="color:#64748b">No data in localStorage</span>';
+        }
+    }
+
+    // Safe display - shows payloads as text (no execution)
+    function displayPayloadsSafe() {
+        var payloads = loadPayloads();
+        
+        if (payloads.length === 0) {
+            payloadsList.innerHTML = '<span style="color:#64748b">No payloads. Add one above.</span>';
+            return;
+        }
+        
+        var html = '';
+        for (var i = 0; i < payloads.length; i++) {
+            html += '<div class="user-card"><strong>Payload ' + (i+1) + ':</strong><br><code>' + escapeHtml(payloads[i]) + '</code></div>';
+        }
+        payloadsList.innerHTML = html;
+    }
+
+    // VULNERABLE EXECUTION FUNCTION
+    function executeAllPayloads() {
+        var payloads = loadPayloads();
+        
+        if (payloads.length === 0) {
+            vulnerableOutput.innerHTML = '<span style="color:#64748b">No payloads to execute. Add some JavaScript code above.</span>';
+            return;
+        }
+        
+        // Display what we're about to execute
+        var html = '<span style="color:#facc15;">📎 Executing ' + payloads.length + ' payload(s) from localStorage JSON:</span><br><br>';
+        for (var i = 0; i < payloads.length; i++) {
+            html += '<div class="user-card"><strong>Executing:</strong><br><code>' + escapeHtml(payloads[i]) + '</code></div>';
+        }
+        html += '<div style="margin-top: 10px; font-size: 12px; color: #ef4444;">Executing via eval()...</div>';
+        vulnerableOutput.innerHTML = html;
+        
+        // VULNERABLE - EXECUTE EACH PAYLOAD WITH eval()
+        for (var i = 0; i < payloads.length; i++) {
+            try {
+                eval(payloads[i]);
+            } catch(e) {
+                console.log('Error executing:', payloads[i], e);
+            }
+        }
+    }
+
+    function addPayload() {
+        var newPayload = payloadInput.value.trim();
+        if (!newPayload) {
+            alert('Enter a JavaScript payload');
+            return;
+        }
+        var payloads = loadPayloads();
+        payloads.push(newPayload);
+        savePayloads(payloads);
+        payloadInput.value = '';
+        alert('Payload added! Click "Execute All Payloads" to trigger XSS.');
+    }
+
+    function clearAllPayloads() {
+        if (confirm('Clear all payloads from localStorage?')) {
+            localStorage.removeItem(STORAGE_KEY);
+            updateRawJsonDisplay();
+            displayPayloadsSafe();
+            vulnerableOutput.innerHTML = '<span style="color:#64748b">All payloads cleared. Add new payloads above.</span>';
+            alert('All payloads cleared!');
+        }
+    }
+
+    function addPayloadExample(payload) {
+        var payloads = loadPayloads();
+        payloads.push(payload);
+        savePayloads(payloads);
+        alert('Payload added: ' + payload + '\n\nClick "Execute All Payloads" to trigger XSS!');
+    }
+
+    // Button handlers
+    addPayloadBtn.onclick = addPayload;
+    clearPayloadsBtn.onclick = clearAllPayloads;
+    executeBtn.onclick = executeAllPayloads;
+    reloadPageBtn.onclick = function() { location.reload(); };
+    
+    document.getElementById('payload1Btn').onclick = function() { addPayloadExample('alert("XSS from localStorage JSON!")'); };
+    document.getElementById('payload2Btn').onclick = function() { addPayloadExample('alert("Cookies: " + document.cookie)'); };
+    document.getElementById('payload3Btn').onclick = function() { addPayloadExample('prompt("XSS Attack! Enter your name:")'); };
+    document.getElementById('payload4Btn').onclick = function() { addPayloadExample('confirm("XSS Attack Successful!")'); };
+
+    // Solution toggle
+    var visible = false;
+    solutionBtn.onclick = function() {
+        visible = !visible;
+        if (visible) {
+            solutionPanel.classList.add('show');
+            solutionBtn.textContent = 'Hide Solution';
+        } else {
+            solutionPanel.classList.remove('show');
+            solutionBtn.textContent = 'Show Solution';
+        }
+    };
+
+    // Initial load
+    updateRawJsonDisplay();
+    displayPayloadsSafe();
+    
+    var existing = loadPayloads();
+    if (existing.length > 0) {
+        console.log('Existing payloads in localStorage:', existing.length);
+    }
+    
+    console.log('Lab #18 Ready - localStorage JSON XSS using eval()');
+    console.log('Add a payload like: alert("XSS") then click Execute');
+</script>
+</body>
+</html>

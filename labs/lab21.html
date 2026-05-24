@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSS Lab #21: Search Box XSS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #facc15;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 { color: #facc15; }
+        .header a { color: #38bdf8; text-decoration: none; }
+        .lab-box {
+            background: #1e293b;
+            border-left: 5px solid #dc2626;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .badge {
+            background: #dc2626;
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+        .output {
+            background: #0f172a;
+            border: 2px solid #dc2626;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            min-height: 100px;
+        }
+        .info {
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        code {
+            background: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #facc15;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        .btn-danger {
+            background: #dc2626;
+        }
+        .btn-secondary {
+            background: #475569;
+        }
+        .solution {
+            background: #0f172a;
+            border: 1px solid #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        .solution.show { display: block; }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .search-box input {
+            flex: 1;
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .search-box button {
+            margin: 0;
+        }
+        .alert-box {
+            background: #facc1520;
+            border-left: 3px solid #facc15;
+            padding: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>XSS-Labs</h1>
+    <p>Created by <strong>Abhinav Singwal</strong> · <a href="https://github.com/yogsec">GitHub</a> · <a href="https://linktr.ee/abhinavsingwal">Linktree</a></p>
+    <p><a href="index.html" style="color: #facc15;">← Back to all labs</a></p>
+</div>
+
+<div class="lab-box">
+    <div class="badge">🔹 Lab #21 · Reflected XSS</div>
+    <h2>Search Box XSS (eval)</h2>
+    <p>The page reads the <code>?code=</code> parameter from URL and executes it using <code>eval()</code>.</p>
+
+    <div class="alert-box">
+        <strong>TEST:</strong><br>
+        1. Type <code>alert("XSS!")</code> in the search box<br>
+        2. Click "Execute" → Alert pops!<br>
+        3. The URL updates with your payload
+    </div>
+
+    <!-- Search Box -->
+    <div class="info">
+        <strong>Enter JavaScript Code:</strong>
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder='alert("XSS!")' value='alert("XSS!")'>
+            <button id="executeBtn" class="btn-danger">Execute Code</button>
+            <button id="clearBtn" class="btn-secondary">Clear</button>
+        </div>
+    </div>
+
+    <!-- Quick Payloads -->
+    <div class="info">
+        <strong>Quick Payloads (click to test):</strong><br>
+        <button id="payload1" class="btn-danger">alert('XSS')</button>
+        <button id="payload2" class="btn-danger">alert(document.cookie)</button>
+        <button id="payload3" class="btn-danger">prompt('Hacked!')</button>
+        <button id="payload4" class="btn-danger">confirm('XSS Attack')</button>
+    </div>
+
+    <!-- Results -->
+    <div class="output" id="results">
+        <span style="color:#64748b">Enter JavaScript code above and click Execute.</span>
+    </div>
+
+    <details style="margin: 15px 0;">
+        <summary style="cursor: pointer; color: #facc15;">Hints</summary>
+        <ul>
+            <li>Type: <code>alert("XSS")</code> and click Execute</li>
+            <li>The alert will pop immediately</li>
+            <li>The URL will show your payload</li>
+        </ul>
+    </details>
+
+    <button id="solutionBtn">Show Solution</button>
+    
+    <div id="solutionPanel" class="solution">
+        <h3>Solution</h3>
+        <p><strong>Working Payloads:</strong></p>
+        <ul>
+            <li><code>alert('XSS')</code></li>
+            <li><code>alert(document.cookie)</code></li>
+            <li><code>prompt('Hacked!')</code></li>
+            <li><code>confirm('XSS Attack')</code></li>
+        </ul>
+        <p><strong>Vulnerable Code:</strong> <code>eval(code)</code></p>
+        <p><strong>Fix:</strong> NEVER use eval() with user input.</p>
+    </div>
+</div>
+
+<script>
+    var results = document.getElementById('results');
+    var searchInput = document.getElementById('searchInput');
+    var executeBtn = document.getElementById('executeBtn');
+    var clearBtn = document.getElementById('clearBtn');
+    var solutionBtn = document.getElementById('solutionBtn');
+    var solutionPanel = document.getElementById('solutionPanel');
+
+    function getQueryParam() {
+        var urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('code');
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    function updatePage() {
+        var code = getQueryParam();
+        
+        if (code && code !== '') {
+            searchInput.value = decodeURIComponent(code);
+            
+            results.innerHTML = '<span style="color:#facc15;">Code from URL:</span><br><code style="display:block; margin-top:10px; background:#000; padding:10px; border-radius:5px;">' + escapeHtml(code) + '</code><div style="margin-top:10px; font-size:12px; color:#ef4444;">⚠️ Executing via eval()...</div>';
+            
+            //VULNERABLE - eval() with URL parameter
+            try {
+                eval(code);
+            } catch(e) {
+                results.innerHTML += '<div style="margin-top:10px; color:#f59e0b;">Error: ' + escapeHtml(e.message) + '</div>';
+            }
+        } else {
+            results.innerHTML = '<span style="color:#64748b">Enter JavaScript code above and click Execute.</span>';
+        }
+    }
+
+    function executeCode() {
+        var code = searchInput.value.trim();
+        
+        if (code === '') {
+            var url = new URL(window.location.href);
+            url.searchParams.delete('code');
+            window.location.href = url.toString();
+        } else {
+            var url = new URL(window.location.href);
+            url.searchParams.set('code', code);
+            window.location.href = url.toString();
+        }
+    }
+
+    function clearCode() {
+        var url = new URL(window.location.href);
+        url.searchParams.delete('code');
+        window.location.href = url.toString();
+    }
+
+    function setPayload(payload) {
+        searchInput.value = payload;
+        executeCode();
+    }
+
+    executeBtn.onclick = executeCode;
+    clearBtn.onclick = clearCode;
+    
+    document.getElementById('payload1').onclick = function() { setPayload('alert("XSS from search!")'); };
+    document.getElementById('payload2').onclick = function() { setPayload('alert("Cookies: " + document.cookie)'); };
+    document.getElementById('payload3').onclick = function() { setPayload('prompt("XSS Attack! Enter your name:")'); };
+    document.getElementById('payload4').onclick = function() { setPayload('confirm("XSS Attack Successful!")'); };
+
+    searchInput.onkeypress = function(e) {
+        if (e.key === 'Enter') {
+            executeCode();
+        }
+    };
+
+    var visible = false;
+    solutionBtn.onclick = function() {
+        visible = !visible;
+        if (visible) {
+            solutionPanel.classList.add('show');
+            solutionBtn.textContent = 'Hide Solution';
+        } else {
+            solutionPanel.classList.remove('show');
+            solutionBtn.textContent = 'Show Solution';
+        }
+    };
+
+    window.addEventListener('popstate', function() {
+        updatePage();
+    });
+
+    updatePage();
+    
+    console.log('Lab #21 Ready - Search Box XSS using eval()');
+</script>
+</body>
+</html>

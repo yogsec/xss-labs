@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSS Lab #7: document.title Injection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 2rem 1rem;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #334155;
+        }
+        .header h1 {
+            font-size: 2rem;
+            color: #facc15;
+        }
+        .header .author {
+            color: #94a3b8;
+            margin-top: 0.5rem;
+        }
+        .header .author a {
+            color: #38bdf8;
+            text-decoration: none;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1rem;
+            color: #38bdf8;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .lab-card {
+            background: #1e293b;
+            border-radius: 1rem;
+            padding: 1.8rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+        }
+        .lab-title {
+            font-size: 1.6rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #facc15;
+        }
+        .lab-badge {
+            display: inline-block;
+            background: #dc2626;
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .description {
+            color: #cbd5e1;
+            margin-bottom: 1.5rem;
+            border-left: 3px solid #facc15;
+            padding-left: 1rem;
+        }
+        .vulnerable-area {
+            background: #0f172a;
+            border: 2px solid #dc2626;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .vulnerable-label {
+            color: #ef4444;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .output-box {
+            background: #0a0f1a;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            min-height: 100px;
+            font-family: monospace;
+            word-break: break-all;
+            border: 1px solid #334155;
+            margin: 1rem 0;
+        }
+        .info-box {
+            background: #0a0f1a;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            font-size: 0.85rem;
+            font-family: monospace;
+        }
+        button {
+            background: #3b82f6;
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            margin-right: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        button:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+        .btn-danger {
+            background: #dc2626;
+        }
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+        .btn-secondary {
+            background: #475569;
+        }
+        .btn-secondary:hover {
+            background: #334155;
+        }
+        .btn-success {
+            background: #10b981;
+        }
+        .btn-success:hover {
+            background: #059669;
+        }
+        .hints {
+            background: #0f172a;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin: 1rem 0;
+            border: 1px solid #334155;
+        }
+        .hints summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: #94a3b8;
+        }
+        .hints ul {
+            margin-top: 0.75rem;
+            margin-left: 1.5rem;
+            color: #cbd5e1;
+        }
+        .hints li {
+            margin: 0.5rem 0;
+        }
+        code {
+            background: #00000050;
+            padding: 0.2rem 0.4rem;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #facc15;
+        }
+        .solution-btn {
+            background: #10b981;
+            width: 100%;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            color: white;
+            transition: all 0.2s;
+            margin-top: 0.5rem;
+        }
+        .solution-btn:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+        .solution-panel {
+            background: #0f172a;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            border: 1px solid #10b981;
+            display: none;
+        }
+        .solution-panel.show {
+            display: block;
+        }
+        .solution-panel h3 {
+            color: #10b981;
+            margin-bottom: 1rem;
+        }
+        .solution-panel pre {
+            background: #00000070;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: monospace;
+            font-size: 0.8rem;
+            margin: 1rem 0;
+        }
+        hr {
+            border-color: #334155;
+            margin: 1rem 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            color: #64748b;
+            font-size: 0.8rem;
+        }
+        .title-display {
+            background: #0a0f1a;
+            border: 1px solid #facc15;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+        input {
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            padding: 0.6rem;
+            border-radius: 0.5rem;
+            font-family: monospace;
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+        .current-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #facc15;
+            word-break: break-word;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a href="index.html" class="back-link">← Back to all labs</a>
+
+    <div class="header">
+        <h1>XSS-Labs</h1>
+        <div class="author">
+            Created by <strong>Abhinav Singwal</strong> · 
+            <a href="https://github.com/yogsec" target="_blank">GitHub</a> · 
+            <a href="https://linktr.ee/abhinavsingwal" target="_blank">Linktree</a>
+        </div>
+    </div>
+
+    <div class="lab-card">
+        <div class="lab-badge">🔹 Lab #7 · DOM-Based XSS</div>
+        <div class="lab-title">document.title Injection</div>
+        <div class="description">
+            This lab reads the page title and injects it into the DOM using <code>innerHTML</code> — NO sanitization.<br>
+            The title can be controlled via URL parameters or user input.<br>
+            <strong>Goal:</strong> Execute JavaScript by injecting malicious code into the document title.
+        </div>
+
+        <div class="vulnerable-area">
+            <div class="vulnerable-label">VULNERABLE TARGET (Title Injection)</div>
+            
+            <!-- Title Controls -->
+            <div class="info-box">
+                <strong>Title Controls:</strong><br><br>
+                <button id="setNormalTitle" class="btn-success">Set Normal Title (Welcome to XSS Lab)</button>
+                <button id="setXSS1" class="btn-danger">Set XSS: img onerror</button>
+                <button id="setXSS2" class="btn-danger">Set XSS: body onload</button>
+                <button id="setXSS3" class="btn-danger">Set XSS: svg onload</button>
+                <button id="resetTitle" class="btn-secondary">Reset Title</button>
+            </div>
+
+            <!-- Custom Title Input -->
+            <div class="info-box">
+                <strong>Set Custom Title:</strong>
+                <input type="text" id="customTitle" placeholder="Enter any title (XSS payload here)" value='&lt;img src=x onerror=alert("XSS via Title!")&gt;'>
+                <button id="setCustomTitle" class="btn-success" style="margin-top: 10px;">Apply Custom Title</button>
+            </div>
+
+            <!-- Current Title Display -->
+            <div class="info-box">
+                <strong>Current Page Title:</strong>
+                <div class="title-display" id="titleDisplay">
+                    <span id="currentTitleText"></span>
+                </div>
+            </div>
+
+            <!-- Reflected Output (VULNERABLE) -->
+            <div class="output-box" id="vulnerableOutput">
+                <span style="color:#64748b">No title reflected yet...</span>
+            </div>
+
+            <div class="info-box" style="background: #1e293b;">
+                <strong>How this works:</strong><br>
+                • The page reads <code>document.title</code> (the browser tab title).<br>
+                • It injects the title into the page using <code>innerHTML</code> (VULNERABLE!).<br>
+                • If the title contains HTML/JavaScript, it will execute when reflected.<br>
+                • In real attacks, the title can be controlled via URL parameters or stored data.
+            </div>
+        </div>
+
+        <details class="hints">
+            <summary>Hints (click to expand)</summary>
+            <ul>
+                <li>The vulnerable code reads <code>document.title</code> and uses <code>innerHTML</code> to render it.</li>
+                <li>Click "Set XSS: img onerror" - it WILL pop an alert immediately.</li>
+                <li>Try setting a custom title with <code>&lt;svg onload=alert(1)&gt;</code> in the input.</li>
+                <li>The XSS executes because the title is injected via innerHTML.</li>
+                <li>Notice how the browser tab title also changes!</li>
+            </ul>
+        </details>
+
+        <button id="solutionBtn" class="solution-btn">Show Solution</button>
+        
+        <div id="solutionPanel" class="solution-panel">
+            <h3>Solution & Explanation</h3>
+            
+            <p><strong>Working Payloads (as title values):</strong></p>
+            <ul>
+                <li><code>&lt;img src=x onerror=alert('XSS')&gt;</code> — Image error event</li>
+                <li><code>&lt;body onload=alert(document.cookie)&gt;</code> — Body onload</li>
+                <li><code>&lt;svg onload=alert(1)&gt;</code> — SVG onload</li>
+                <li><code>&lt;script&gt;alert('Title XSS')&lt;/script&gt;</code> — Script tag</li>
+            </ul>
+            
+            <p><strong>Real-world attack scenarios:</strong></p>
+            <ol style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                <li><strong>URL Parameter Injection:</strong> <code>page.html?title=&lt;img src=x onerror=alert(1)&gt;</code></li>
+                <li><strong>Stored Title XSS:</strong> If titles are stored in a database and reflected later</li>
+                <li><strong>Dashboard widgets</strong> that display page titles from user input</li>
+            </ol>
+            
+            <p><strong>Vulnerable Code:</strong></p>
+            <pre>// VULNERABLE: Reading title and injecting with innerHTML
+let pageTitle = document.title;
+document.getElementById('output').innerHTML = pageTitle;</pre>
+            
+            <p><strong>How to Fix:</strong></p>
+            <pre>// FIX #1: Use textContent instead of innerHTML
+let pageTitle = document.title;
+document.getElementById('output').textContent = pageTitle;
+
+// FIX #2: Escape HTML entities before inserting
+function escapeHtml(str) {
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+document.getElementById('output').innerHTML = escapeHtml(pageTitle);</pre>
+            
+            <hr>
+            <p><strong>Key Point:</strong> Never trust <code>document.title</code> if it can be controlled by users. Always sanitize before using in HTML.</p>
+            <p style="color:#888; font-size:12px;">Educational purpose only — runs entirely in your browser.</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        ⚡ XSS-Labs | Lab #7: document.title Injection (DOM-Based XSS)
+    </div>
+</div>
+
+<script>
+    // DOM elements
+    const vulnerableOutput = document.getElementById('vulnerableOutput');
+    const currentTitleText = document.getElementById('currentTitleText');
+    const solutionBtn = document.getElementById('solutionBtn');
+    const solutionPanel = document.getElementById('solutionPanel');
+    const customTitleInput = document.getElementById('customTitle');
+    const setCustomTitleBtn = document.getElementById('setCustomTitle');
+    const setNormalTitleBtn = document.getElementById('setNormalTitle');
+    const setXSS1Btn = document.getElementById('setXSS1');
+    const setXSS2Btn = document.getElementById('setXSS2');
+    const setXSS3Btn = document.getElementById('setXSS3');
+    const resetTitleBtn = document.getElementById('resetTitle');
+
+    // Store original title
+    const originalTitle = document.title;
+
+    // VULNERABLE FUNCTION: Reads document.title and injects via innerHTML
+    function reflectTitle() {
+        let currentTitle = document.title;
+        
+        // Update title display (escaped for safe display)
+        currentTitleText.textContent = currentTitle;
+        
+        // VULNERABLE SINK 
+        // This innerHTML injection with document.title is the XSS vulnerability
+        if (currentTitle && currentTitle !== '') {
+            vulnerableOutput.innerHTML = `
+                <span style="color:#facc15;"> Reflected Page Title (injected via innerHTML):</span><br>
+                <code style="display:block; margin-top:8px; background:#000; padding:8px; border-radius:4px; word-break:break-all;">${currentTitle}</code>
+                <div style="margin-top:8px; font-size:11px; color:#ef4444;"> VULNERABLE: innerHTML with unsanitized document.title!</div>
+            `;
+        } else {
+            vulnerableOutput.innerHTML = `
+                <span style="color:#64748b;">No title to reflect.</span>
+                <div style="margin-top:8px; font-size:11px;">Click the buttons above to set a title with XSS payloads.</div>
+            `;
+        }
+    }
+
+    // Set page title and reflect
+    function setPageTitle(newTitle) {
+        document.title = newTitle;
+        reflectTitle();
+    }
+
+    // Reset title
+    function resetTitle() {
+        document.title = originalTitle;
+        reflectTitle();
+        customTitleInput.value = '';
+    }
+
+    // Button handlers
+    setNormalTitleBtn.addEventListener('click', () => {
+        setPageTitle('Welcome to XSS Lab #7 - Title Injection');
+    });
+
+    setXSS1Btn.addEventListener('click', () => {
+        setPageTitle('<img src=x onerror=alert("XSS: Title Injection via img onerror!")>');
+        setTimeout(() => {
+            alert('XSS payload injected into title! The alert should appear now.');
+        }, 50);
+    });
+
+    setXSS2Btn.addEventListener('click', () => {
+        setPageTitle('<body onload=alert("XSS: Body onload from Title!")>');
+        setTimeout(() => {
+            alert('XSS payload injected! Check the vulnerable output above.');
+        }, 50);
+    });
+
+    setXSS3Btn.addEventListener('click', () => {
+        setPageTitle('<svg onload=alert("XSS: SVG onload from Page Title!")>');
+        setTimeout(() => {
+            alert('XSS payload set! The alert will trigger.');
+        }, 50);
+    });
+
+    resetTitleBtn.addEventListener('click', resetTitle);
+
+    setCustomTitleBtn.addEventListener('click', () => {
+        let customTitle = customTitleInput.value;
+        if (customTitle && customTitle.trim() !== '') {
+            setPageTitle(customTitle);
+            setTimeout(() => {
+                alert(`Custom title set! ${customTitle.includes('<') ? 'XSS payload will execute now.' : 'Title updated successfully.'}`);
+            }, 50);
+        } else {
+            alert('Please enter a title');
+        }
+    });
+
+    // Allow Enter key in custom title input
+    customTitleInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            setCustomTitleBtn.click();
+        }
+    });
+
+    // Toggle solution
+    let solutionVisible = false;
+    solutionBtn.addEventListener('click', () => {
+        solutionVisible = !solutionVisible;
+        if (solutionVisible) {
+            solutionPanel.classList.add('show');
+            solutionBtn.textContent = 'Hide Solution';
+            solutionBtn.style.background = '#475569';
+        } else {
+            solutionPanel.classList.remove('show');
+            solutionBtn.textContent = 'Show Solution';
+            solutionBtn.style.background = '#10b981';
+        }
+    });
+
+    // Initial load - reflect the current title
+    reflectTitle();
+
+    console.log('Lab #7 Ready - document.title Injection XSS');
+    console.log('Current title:', document.title);
+</script>
+</body>
+</html>
