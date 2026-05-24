@@ -1,11 +1,11 @@
-# XSS-Labs
+# xss-labs
 
 A comprehensive collection of 39 hands-on Cross-Site Scripting (XSS) labs for security enthusiasts, developers, and penetration testers.
 ---
 
 ## Overview
 
-XSS-Labs is a frontend-only training platform that demonstrates various XSS vulnerabilities in a safe, controlled environment. Each lab focuses on a specific XSS vector, allowing you to understand how these attacks work and how to prevent them.
+xss-labs is a frontend-only training that demonstrates various XSS vulnerabilities in a safe, controlled environment. Each lab focuses on a specific XSS vector, allowing you to understand how these attacks work and how to prevent them.
 
 All labs run entirely in your browser. No backend server is required.
 
