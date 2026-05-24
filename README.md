@@ -2,7 +2,8 @@
 
 A comprehensive collection of hands-on Cross-Site Scripting (XSS) labs for security enthusiasts, developers, and penetration testers.
 
-!(https://github.com/yogsec/xss-labs/blob/main/Screenshot%20From%202026-05-24%2014-07-52.png?raw=true)
+![Screenshot](https://github.com/yogsec/xss-labs/blob/main/Screenshot%20From%202026-05-24%2014-07-52.png?raw=true)
+
 ---
 
 ## Overview
