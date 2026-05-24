@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSS Lab #39: onsubmit Injection in Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #facc15;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 { color: #facc15; }
+        .header a { color: #38bdf8; text-decoration: none; }
+        .lab-box {
+            background: #1e293b;
+            border-left: 5px solid #dc2626;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .badge {
+            background: #dc2626;
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+        .output {
+            background: #0f172a;
+            border: 2px solid #dc2626;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            min-height: 100px;
+        }
+        .info {
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        code {
+            background: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #facc15;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        .btn-danger {
+            background: #dc2626;
+        }
+        .btn-success {
+            background: #10b981;
+        }
+        .btn-secondary {
+            background: #475569;
+        }
+        .solution {
+            background: #0f172a;
+            border: 1px solid #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        .solution.show { display: block; }
+        textarea {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+            margin: 10px 0;
+        }
+        input {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 14px;
+            margin: 5px 0;
+            box-sizing: border-box;
+        }
+        .alert-box {
+            background: #facc1520;
+            border-left: 3px solid #facc15;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .dynamic-form {
+            background: #0a0f1a;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border: 2px solid #facc15;
+        }
+        .dynamic-form input {
+            margin: 10px 0;
+        }
+        .dynamic-form button {
+            margin-top: 10px;
+            width: 100%;
+        }
+        .preview-area {
+            background: #0a0f1a;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 12px;
+            border: 1px solid #334155;
+        }
+        .submit-counter {
+            font-size: 16px;
+            font-weight: bold;
+            color: #facc15;
+            text-align: center;
+            margin-top: 10px;
+        }
+        .event-log {
+            background: #0a0f1a;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 12px;
+            max-height: 120px;
+            overflow-y: auto;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>XSS-Labs</h1>
+    <p>Created by <strong>Abhinav Singwal</strong> · <a href="https://github.com/yogsec">GitHub</a> · <a href="https://linktr.ee/abhinavsingwal">Linktree</a></p>
+    <p><a href="index.html" style="color: #facc15;">← Back to all labs</a></p>
+</div>
+
+<div class="lab-box">
+    <div class="badge">🔹 Lab #39 · DOM-Based XSS</div>
+    <h2>onsubmit Injection in Form</h2>
+    <p>The <code>onsubmit</code> event fires when a form is submitted. Injecting user-controlled code into this event creates an XSS vulnerability that triggers on form submission.</p>
+
+    <div class="alert-box">
+        <strong>TEST:</strong><br>
+        1. Click any payload button below<br>
+        2. A form will be created with injected onsubmit<br>
+        3. Click the "Submit" button → Your code executes!
+    </div>
+
+    <div class="info">
+        <strong>Enter JavaScript Code for onsubmit:</strong>
+        <textarea id="codeInput" rows="2">alert("XSS from form onsubmit!")</textarea>
+        <button id="createBtn" class="btn-danger">Create Form with onsubmit</button>
+        <button id="resetBtn" class="btn-secondary">Reset</button>
+    </div>
+
+    <div class="info">
+        <strong>Click to inject (then click submit):</strong><br>
+        <button id="payload1" class="btn-danger">alert XSS</button>
+        <button id="payload2" class="btn-danger">alert cookie</button>
+        <button id="payload3" class="btn-danger">prompt</button>
+        <button id="payload4" class="btn-danger">confirm</button>
+        <button id="payload5" class="btn-danger">show form data</button>
+        <button id="payload6" class="btn-danger">validate & stop</button>
+    </div>
+
+    <div id="formContainer" style="min-height: 200px; margin: 15px 0;">
+        <span style="color:#64748b">No form yet. Click a button above.</span>
+    </div>
+
+    <div class="preview-area" id="codePreview">
+        <span style="color:#64748b">Code preview will appear here</span>
+    </div>
+
+    <div class="output" id="resultOutput">
+        <span>Click a payload button, then submit the form.</span>
+    </div>
+
+    <details style="margin: 15px 0;">
+        <summary style="cursor: pointer; color: #facc15;">Hints</summary>
+        <ul>
+            <li>Click "alert XSS" - then click Submit → alert pops</li>
+            <li>Click "validate & stop" - form submission is prevented</li>
+            <li>Click "show form data" - displays what you entered</li>
+        </ul>
+    </details>
+
+    <button id="solutionBtn">Show Solution</button>
+    
+    <div id="solutionPanel" class="solution">
+        <h3>Solution</h3>
+        <p><strong>Working Payloads:</strong></p>
+        <ul>
+            <li><code>alert('XSS')</code> - Alert on submit</li>
+            <li><code>alert(document.cookie)</code> - Steal cookies on submit</li>
+            <li><code>prompt('Hacked!')</code> - Prompt on submit</li>
+            <li><code>return false</code> - Prevent form submission</li>
+        </ul>
+        <p><strong>Fix:</strong> Never use eval() with user input.</p>
+    </div>
+</div>
+
+<script>
+    var formContainer = document.getElementById('formContainer');
+    var codePreview = document.getElementById('codePreview');
+    var resultOutput = document.getElementById('resultOutput');
+    var codeInput = document.getElementById('codeInput');
+    var createBtn = document.getElementById('createBtn');
+    var resetBtn = document.getElementById('resetBtn');
+    var solutionBtn = document.getElementById('solutionBtn');
+    var solutionPanel = document.getElementById('solutionPanel');
+
+    var submitCount = 0;
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    function createForm() {
+        var code = codeInput.value.trim();
+        
+        if (code === '') {
+            resultOutput.innerHTML = '<span>Please enter code.</span>';
+            return;
+        }
+        
+        formContainer.innerHTML = '';
+        submitCount = 0;
+        
+        var form = document.createElement('form');
+        form.className = 'dynamic-form';
+        
+        var nameLabel = document.createElement('label');
+        nameLabel.textContent = 'Name:';
+        var nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.name = 'name';
+        nameInput.placeholder = 'Enter your name';
+        
+        var emailLabel = document.createElement('label');
+        emailLabel.textContent = 'Email:';
+        var emailInput = document.createElement('input');
+        emailInput.type = 'email';
+        emailInput.name = 'email';
+        emailInput.placeholder = 'Enter your email';
+        
+        var submitBtn = document.createElement('button');
+        submitBtn.type = 'submit';
+        submitBtn.textContent = 'Submit Form';
+        submitBtn.style.background = '#10b981';
+        
+        form.appendChild(nameLabel);
+        form.appendChild(nameInput);
+        form.appendChild(emailLabel);
+        form.appendChild(emailInput);
+        form.appendChild(submitBtn);
+        
+        var counterDiv = document.createElement('div');
+        counterDiv.className = 'submit-counter';
+        counterDiv.id = 'submitCounter';
+        counterDiv.innerHTML = 'Form submitted: <span id="submitCount">0</span> times';
+        
+        var logDiv = document.createElement('div');
+        logDiv.className = 'event-log';
+        logDiv.id = 'eventLog';
+        logDiv.innerHTML = '<strong>Event Log:</strong><br><span style="color:#64748b">Submit the form to see events...</span>';
+        
+        codePreview.innerHTML = '<span style="color:#facc15;">Code to execute onsubmit: </span><code>' + escapeHtml(code) + '</code>';
+        
+        resultOutput.innerHTML = '<span style="color:#facc15;">Form created with onsubmit handler.</span><div style="margin-top:10px; color:#ef4444;">Click the Submit button to trigger XSS!</div>';
+        
+        // VULNERABLE - eval on form submission
+        form.onsubmit = function(e) {
+            e.preventDefault(); // Prevent actual page reload
+            
+            submitCount++;
+            document.getElementById('submitCount').textContent = submitCount;
+            
+            var nameValue = nameInput.value || '(empty)';
+            var emailValue = emailInput.value || '(empty)';
+            
+            var log = document.getElementById('eventLog');
+            var timestamp = new Date().toLocaleTimeString();
+            log.innerHTML = '<strong>Event Log:</strong><br><span style="color:#facc15;">[' + timestamp + ']</span> Form submitted - Name: "' + escapeHtml(nameValue) + '", Email: "' + escapeHtml(emailValue) + '"<br>' + log.innerHTML;
+            if (log.children.length > 15) {
+                while (log.children.length > 10) {
+                    if (log.lastChild) log.removeChild(log.lastChild);
+                }
+            }
+            
+            try {
+                eval(code);
+            } catch(e) {
+                console.log('Error:', e);
+                log.innerHTML = '<strong>Event Log:</strong><br><span style="color:#f59e0b;">[' + timestamp + '] Error: ' + escapeHtml(e.message) + '</span><br>' + log.innerHTML;
+            }
+            
+            return false;
+        };
+        
+        formContainer.appendChild(form);
+        formContainer.appendChild(counterDiv);
+        formContainer.appendChild(logDiv);
+    }
+
+    function resetForm() {
+        formContainer.innerHTML = '<span style="color:#64748b">No form yet. Click a button above.</span>';
+        codePreview.innerHTML = '<span style="color:#64748b">Code preview will appear here</span>';
+        resultOutput.innerHTML = '<span>Reset. Click a payload button to create a new form.</span>';
+    }
+
+    function setPayload(payload) {
+        codeInput.value = payload;
+        createForm();
+    }
+
+    createBtn.onclick = createForm;
+    resetBtn.onclick = resetForm;
+    
+    document.getElementById('payload1').onclick = function() { setPayload('alert("XSS from form onsubmit!")'); };
+    document.getElementById('payload2').onclick = function() { setPayload('alert("Your cookies: " + document.cookie)'); };
+    document.getElementById('payload3').onclick = function() { setPayload('prompt("XSS Attack! Form submitted")'); };
+    document.getElementById('payload4').onclick = function() { setPayload('confirm("XSS Attack! Form submitted")'); };
+    document.getElementById('payload5').onclick = function() { setPayload('alert("Name: " + this.name.value + ", Email: " + this.email.value)'); };
+    document.getElementById('payload6').onclick = function() { setPayload('alert("Validation failed! Form not submitted."); return false'); };
+
+    codeInput.value = 'alert("XSS from form onsubmit!")';
+
+    var visible = false;
+    solutionBtn.onclick = function() {
+        visible = !visible;
+        if (visible) {
+            solutionPanel.classList.add('show');
+            solutionBtn.textContent = 'Hide Solution';
+        } else {
+            solutionPanel.classList.remove('show');
+            solutionBtn.textContent = 'Show Solution';
+        }
+    };
+</script>
+</body>
+</html>

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSS Lab #38: onkeyup Injection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #facc15;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 { color: #facc15; }
+        .header a { color: #38bdf8; text-decoration: none; }
+        .lab-box {
+            background: #1e293b;
+            border-left: 5px solid #dc2626;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .badge {
+            background: #dc2626;
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+        .output {
+            background: #0f172a;
+            border: 2px solid #dc2626;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            min-height: 100px;
+        }
+        .info {
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        code {
+            background: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #facc15;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        .btn-danger {
+            background: #dc2626;
+        }
+        .btn-secondary {
+            background: #475569;
+        }
+        .solution {
+            background: #0f172a;
+            border: 1px solid #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        .solution.show { display: block; }
+        textarea {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+            margin: 10px 0;
+        }
+        .alert-box {
+            background: #facc1520;
+            border-left: 3px solid #facc15;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .dynamic-input {
+            background: #0f172a;
+            border: 2px solid #facc15;
+            color: white;
+            padding: 15px;
+            font-size: 16px;
+            border-radius: 8px;
+            width: 100%;
+            margin: 15px 0;
+            box-sizing: border-box;
+        }
+        .dynamic-input:focus {
+            outline: none;
+            border-color: #10b981;
+        }
+        .preview-area {
+            background: #0a0f1a;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 12px;
+            border: 1px solid #334155;
+        }
+        .key-counter {
+            font-size: 16px;
+            font-weight: bold;
+            color: #facc15;
+            text-align: center;
+            margin-top: 10px;
+        }
+        .event-log {
+            background: #0a0f1a;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 12px;
+            max-height: 120px;
+            overflow-y: auto;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>XSS-Labs</h1>
+    <p>Created by <strong>Abhinav Singwal</strong> · <a href="https://github.com/yogsec">GitHub</a> · <a href="https://linktr.ee/abhinavsingwal">Linktree</a></p>
+    <p><a href="index.html" style="color: #facc15;">← Back to all labs</a></p>
+</div>
+
+<div class="lab-box">
+    <div class="badge">🔹 Lab #38 · DOM-Based XSS</div>
+    <h2>onkeyup Injection</h2>
+    <p>The <code>onkeyup</code> event fires every time the user releases a key. Injecting user-controlled code into this event creates an XSS vulnerability that triggers on every keystroke.</p>
+
+    <div class="alert-box">
+        <strong>TEST:</strong><br>
+        1. Click any payload button below<br>
+        2. Type ANYTHING in the input field<br>
+        3. Every time you release a key, your code executes!
+    </div>
+
+    <div class="info">
+        <strong>Enter JavaScript Code for onkeyup:</strong>
+        <textarea id="codeInput" rows="2">console.log("Key released: " + event.key)</textarea>
+        <button id="createBtn" class="btn-danger">Create Input with onkeyup</button>
+        <button id="resetBtn" class="btn-secondary">Reset</button>
+    </div>
+
+    <div class="info">
+        <strong>Click to inject (then type in input):</strong><br>
+        <button id="payload1" class="btn-danger">alert on each key</button>
+        <button id="payload2" class="btn-danger">alert cookie on key</button>
+        <button id="payload3" class="btn-danger">prompt on key</button>
+        <button id="payload4" class="btn-danger">confirm on key</button>
+        <button id="payload5" class="btn-danger">show key in console</button>
+        <button id="payload6" class="btn-danger">count keystrokes</button>
+    </div>
+
+    <div id="inputContainer" style="min-height: 100px; margin: 15px 0;">
+        <span style="color:#64748b">No input field yet. Click a button above.</span>
+    </div>
+
+    <div class="preview-area" id="codePreview">
+        <span style="color:#64748b">Code preview will appear here</span>
+    </div>
+
+    <div class="output" id="resultOutput">
+        <span>Click a payload button, then type in the input field.</span>
+    </div>
+
+    <details style="margin: 15px 0;">
+        <summary style="cursor: pointer; color: #facc15;">Hints</summary>
+        <ul>
+            <li>Click "alert on each key" - then type → alert every keystroke!</li>
+            <li>Click "count keystrokes" - shows counter as you type</li>
+            <li>The onkeyup event fires on EVERY key release</li>
+        </ul>
+    </details>
+
+    <button id="solutionBtn">Show Solution</button>
+    
+    <div id="solutionPanel" class="solution">
+        <h3>Solution</h3>
+        <p><strong>Working Payloads:</strong></p>
+        <ul>
+            <li><code>alert('XSS')</code> - Alert on every key release</li>
+            <li><code>alert(document.cookie)</code> - Steal cookies on each key</li>
+            <li><code>prompt('Hacked!')</code> - Prompt on each key</li>
+        </ul>
+        <p><strong>Fix:</strong> Never use eval() with user input.</p>
+    </div>
+</div>
+
+<script>
+    var inputContainer = document.getElementById('inputContainer');
+    var codePreview = document.getElementById('codePreview');
+    var resultOutput = document.getElementById('resultOutput');
+    var codeInput = document.getElementById('codeInput');
+    var createBtn = document.getElementById('createBtn');
+    var resetBtn = document.getElementById('resetBtn');
+    var solutionBtn = document.getElementById('solutionBtn');
+    var solutionPanel = document.getElementById('solutionPanel');
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    function createInput() {
+        var code = codeInput.value.trim();
+        
+        if (code === '') {
+            resultOutput.innerHTML = '<span>Please enter code.</span>';
+            return;
+        }
+        
+        inputContainer.innerHTML = '';
+        
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'dynamic-input';
+        input.placeholder = 'Type something here... onkeyup will trigger on every key release';
+        
+        var counter = 0;
+        var counterDiv = document.createElement('div');
+        counterDiv.className = 'key-counter';
+        counterDiv.id = 'keyCounter';
+        counterDiv.innerHTML = 'onkeyup triggered: <span id="keyCount">0</span> times';
+        
+        var logDiv = document.createElement('div');
+        logDiv.className = 'event-log';
+        logDiv.id = 'eventLog';
+        logDiv.innerHTML = '<strong>Event Log:</strong><br><span style="color:#64748b">Type in the input above to see events...</span>';
+        
+        codePreview.innerHTML = '<span style="color:#facc15;">Code to execute onkeyup: </span><code>' + escapeHtml(code) + '</code>';
+        
+        resultOutput.innerHTML = '<span style="color:#facc15;">Input created with onkeyup handler.</span><div style="margin-top:10px; color:#ef4444;">Type in the input field to trigger XSS on every key release!</div>';
+        
+        // VULNERABLE - eval on every keyup
+        input.onkeyup = function(e) {
+            counter++;
+            document.getElementById('keyCount').textContent = counter;
+            
+            var log = document.getElementById('eventLog');
+            var timestamp = new Date().toLocaleTimeString();
+            var key = e.key || 'unknown';
+            log.innerHTML = '<strong>Event Log:</strong><br><span style="color:#facc15;">[' + timestamp + ']</span> Key released: "' + escapeHtml(key) + '"<br>' + log.innerHTML;
+            if (log.children.length > 15) {
+                while (log.children.length > 10) {
+                    if (log.lastChild) log.removeChild(log.lastChild);
+                }
+            }
+            
+            try {
+                eval(code);
+            } catch(e) {
+                console.log('Error:', e);
+                log.innerHTML = '<strong>Event Log:</strong><br><span style="color:#f59e0b;">[' + timestamp + '] Error: ' + escapeHtml(e.message) + '</span><br>' + log.innerHTML;
+            }
+        };
+        
+        inputContainer.appendChild(input);
+        inputContainer.appendChild(counterDiv);
+        inputContainer.appendChild(logDiv);
+        
+        setTimeout(function() { input.focus(); }, 100);
+    }
+
+    function resetInput() {
+        inputContainer.innerHTML = '<span style="color:#64748b">No input field yet. Click a button above.</span>';
+        codePreview.innerHTML = '<span style="color:#64748b">Code preview will appear here</span>';
+        resultOutput.innerHTML = '<span>Reset. Click a payload button to create a new input.</span>';
+    }
+
+    function setPayload(payload) {
+        codeInput.value = payload;
+        createInput();
+    }
+
+    createBtn.onclick = createInput;
+    resetBtn.onclick = resetInput;
+    
+    document.getElementById('payload1').onclick = function() { setPayload('alert("XSS from onkeyup!")'); };
+    document.getElementById('payload2').onclick = function() { setPayload('alert("Your cookies: " + document.cookie)'); };
+    document.getElementById('payload3').onclick = function() { setPayload('prompt("XSS Attack! Key pressed: " + event.key)'); };
+    document.getElementById('payload4').onclick = function() { setPayload('confirm("XSS Attack! Key released")'); };
+    document.getElementById('payload5').onclick = function() { setPayload('console.log("Key released: " + event.key + " at " + new Date())'); };
+    document.getElementById('payload6').onclick = function() { setPayload('document.getElementById("keyCount").textContent = parseInt(document.getElementById("keyCount").textContent) + 1'); };
+
+    codeInput.value = 'alert("XSS from onkeyup! Type something...")';
+
+    var visible = false;
+    solutionBtn.onclick = function() {
+        visible = !visible;
+        if (visible) {
+            solutionPanel.classList.add('show');
+            solutionBtn.textContent = 'Hide Solution';
+        } else {
+            solutionPanel.classList.remove('show');
+            solutionBtn.textContent = 'Show Solution';
+        }
+    };
+</script>
+</body>
+</html>

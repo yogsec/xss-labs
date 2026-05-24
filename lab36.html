@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSS Lab #36: oninput Event Injection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #facc15;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 { color: #facc15; }
+        .header a { color: #38bdf8; text-decoration: none; }
+        .lab-box {
+            background: #1e293b;
+            border-left: 5px solid #dc2626;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .badge {
+            background: #dc2626;
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+        .output {
+            background: #0f172a;
+            border: 2px solid #dc2626;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            min-height: 120px;
+        }
+        .info {
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        code {
+            background: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #facc15;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        .btn-danger {
+            background: #dc2626;
+        }
+        .btn-success {
+            background: #10b981;
+        }
+        .btn-secondary {
+            background: #475569;
+        }
+        .solution {
+            background: #0f172a;
+            border: 1px solid #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        .solution.show { display: block; }
+        input, textarea {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .alert-box {
+            background: #facc1520;
+            border-left: 3px solid #facc15;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .warning-box {
+            background: #dc262620;
+            border-left: 3px solid #dc2626;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .dynamic-input {
+            background: #0f172a;
+            border: 2px solid #facc15;
+            color: white;
+            padding: 15px;
+            font-size: 16px;
+            border-radius: 8px;
+            width: 100%;
+            margin: 15px 0;
+            box-sizing: border-box;
+        }
+        .dynamic-input:focus {
+            outline: none;
+            border-color: #10b981;
+        }
+        .input-counter {
+            font-size: 16px;
+            font-weight: bold;
+            color: #facc15;
+            text-align: center;
+            margin-top: 10px;
+        }
+        .preview-area {
+            background: #0a0f1a;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 12px;
+            border: 1px solid #334155;
+        }
+        .event-log {
+            background: #0a0f1a;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 12px;
+            max-height: 100px;
+            overflow-y: auto;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>XSS-Labs</h1>
+    <p>Created by <strong>Abhinav Singwal</strong> · <a href="https://github.com/yogsec">GitHub</a> · <a href="https://linktr.ee/abhinavsingwal">Linktree</a></p>
+    <p><a href="index.html" style="color: #facc15;">← Back to all labs</a></p>
+</div>
+
+<div class="lab-box">
+    <div class="badge">🔹 Lab #36 · DOM-Based XSS</div>
+    <h2>oninput Event in Dynamically Created Input</h2>
+    <p>The <code>oninput</code> event fires every time the user types or changes the input value. Injecting user-controlled code into this event creates an XSS vulnerability that triggers on every keystroke.</p>
+
+    <div class="alert-box">
+        <strong>TEST:</strong><br>
+        1. Click any payload button below (alert, prompt, etc.)<br>
+        2. A new input field will be created with the injected oninput<br>
+        3. Type ANYTHING into the input field → Your code executes on every keystroke!
+    </div>
+
+    <div class="info">
+        <strong>Enter JavaScript Code for oninput:</strong>
+        <textarea id="codeInput" rows="3">console.log("Input changed to: " + this.value)</textarea>
+        <button id="injectBtn" class="btn-danger">Create Input with oninput</button>
+        <button id="resetBtn" class="btn-secondary">Remove Dynamic Input</button>
+    </div>
+
+    <div class="info">
+        <strong>Quick Payloads (click to inject - then type in input):</strong><br>
+        <button id="payload1" class="btn-danger">alert on each key</button>
+        <button id="payload2" class="btn-danger">alert cookie on key</button>
+        <button id="payload3" class="btn-danger">console log value</button>
+        <button id="payload4" class="btn-danger">show value in real-time</button>
+        <button id="payload5" class="btn-danger">uppercase input</button>
+        <button id="payload6" class="btn-danger">count characters</button>
+    </div>
+
+    <div class="info">
+        <strong>DYNAMIC INPUT (will appear here):</strong>
+        <div id="inputContainer" style="min-height: 80px;">
+            <span style="color:#64748b">No dynamic input yet. Click a button above to create one.</span>
+        </div>
+    </div>
+
+    <div class="preview-area" id="codePreview">
+        <span style="color:#64748b">Code preview will appear here</span>
+    </div>
+
+    <div class="output" id="resultOutput">
+        <span>Click a payload button to create an input with oninput injection.</span>
+    </div>
+
+    <div class="info" style="background: #dc262620;">
+        <strong>HOW oninput INJECTION WORKS:</strong><br>
+        • <code>&lt;input oninput="alert('XSS')"&gt;</code> executes on every keystroke<br>
+        • Attackers can inject code that runs repeatedly as the user types<br>
+        • This can be used for keylogging, data theft, or annoying alerts<br>
+        • <strong>NEVER let users control the oninput attribute!</strong>
+    </div>
+
+    <details style="margin: 15px 0;">
+        <summary style="cursor: pointer; color: #facc15;">Hints</summary>
+        <ul>
+            <li>Click "alert on each key" - then type in the input → alert every keystroke!</li>
+            <li>Click "uppercase input" - typed text automatically converts to uppercase</li>
+            <li>Click "count characters" - shows character count as you type</li>
+        </ul>
+    </details>
+
+    <button id="solutionBtn">Show Solution</button>
+    
+    <div id="solutionPanel" class="solution">
+        <h3>Solution</h3>
+        <p><strong>Working Payloads (inject into oninput):</strong></p>
+        <ul>
+            <li><code>alert('XSS')</code> - Alert on every keystroke (annoying!)</li>
+            <li><code>console.log(this.value)</code> - Log each keystroke to console</li>
+            <li><code>this.value = this.value.toUpperCase()</code> - Auto-uppercase</li>
+            <li><code>document.getElementById('log').innerHTML += this.value</code> - Keylogging</li>
+        </ul>
+        <p><strong>Classic XSS Payload:</strong></p>
+        <pre style="background:#000; padding:10px; border-radius:5px; overflow-x:auto;">&lt;input oninput="alert('XSS')"&gt;</pre>
+        <p><strong>Vulnerable Code:</strong></p>
+        <pre style="background:#000; padding:10px; border-radius:5px; overflow-x:auto;">let userCode = document.getElementById('input').value;
+let input = document.createElement('input');
+input.setAttribute('oninput', userCode);  // DANGEROUS!
+container.appendChild(input);</pre>
+        <p><strong>Fix:</strong> Never let users control event handlers. Use addEventListener with safe functions.</p>
+    </div>
+</div>
+
+<script>
+    var inputContainer = document.getElementById('inputContainer');
+    var codePreview = document.getElementById('codePreview');
+    var resultOutput = document.getElementById('resultOutput');
+    var codeInput = document.getElementById('codeInput');
+    var injectBtn = document.getElementById('injectBtn');
+    var resetBtn = document.getElementById('resetBtn');
+    var solutionBtn = document.getElementById('solutionBtn');
+    var solutionPanel = document.getElementById('solutionPanel');
+
+    var currentInput = null;
+    var eventCount = 0;
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // VULNERABLE FUNCTION - Create input with oninput from user code
+    function createInputWithOninput() {
+        var code = codeInput.value.trim();
+        
+        if (code === '') {
+            resultOutput.innerHTML = '<span>Please enter JavaScript code for the oninput attribute.</span>';
+            return;
+        }
+        
+        // Clear container
+        inputContainer.innerHTML = '';
+        
+        // Create new input element
+        var newInput = document.createElement('input');
+        newInput.type = 'text';
+        newInput.className = 'dynamic-input';
+        newInput.placeholder = 'Type something here... The oninput event will trigger on every keystroke.';
+        
+        // Update preview
+        codePreview.innerHTML = '<span style="color:#facc15;">&lt;input type="text" oninput="' + escapeHtml(code) + '"&gt;</span>';
+        
+        resultOutput.innerHTML = '<span style="color:#facc15;">📎 Creating input with oninput injection:</span><br><code style="display:block; margin-top:10px; background:#000; padding:10px; border-radius:5px; overflow-x:auto;">&lt;input type="text" oninput="' + escapeHtml(code) + '"&gt;</code><div style="margin-top:10px; font-size:12px; color:#ef4444;">⚠️ This input will execute your code on EVERY keystroke!</div><div style="margin-top:5px; font-size:10px;">Type in the input field below to trigger the event.</div>';
+        
+        // Add a counter display
+        var counterDiv = document.createElement('div');
+        counterDiv.className = 'input-counter';
+        counterDiv.id = 'eventCounter';
+        counterDiv.innerHTML = 'Event triggered: <span id="eventCount">0</span> times';
+        
+        // Add event log
+        var logDiv = document.createElement('div');
+        logDiv.className = 'event-log';
+        logDiv.id = 'eventLog';
+        logDiv.innerHTML = '<strong>Event Log:</strong><br><span style="color:#64748b">Type in the input above to see events...</span>';
+        
+        // VULNERABLE SINK
+        // Setting oninput with user-controlled code - executes on every keystroke!
+        try {
+            // Create malicious function from user code
+            var maliciousFn = new Function('event', code);
+            var triggerCount = 0;
+            
+            // Set oninput to execute user code
+            newInput.oninput = function(e) {
+                triggerCount++;
+                document.getElementById('eventCount').textContent = triggerCount;
+                
+                // Log the event
+                var log = document.getElementById('eventLog');
+                var timestamp = new Date().toLocaleTimeString();
+                var currentValue = this.value;
+                log.innerHTML = '<strong>Event Log:</strong><br><span style="color:#facc15;">[' + timestamp + ']</span> Value: "' + escapeHtml(currentValue) + '"<br>' + log.innerHTML;
+                if (log.children.length > 20) {
+                    // Keep last 20 entries
+                    var lastChild = log.lastChild;
+                    while (log.children.length > 10) {
+                        if (log.lastChild) log.removeChild(log.lastChild);
+                    }
+                }
+                
+                // Execute user's malicious code
+                try {
+                    maliciousFn(e);
+                } catch(err) {
+                    console.log('User code error:', err);
+                    log.innerHTML = '<strong>Event Log:</strong><br><span style="color:#f59e0b;">Error: ' + escapeHtml(err.message) + '</span><br>' + log.innerHTML;
+                }
+            };
+            
+        } catch(e) {
+            resultOutput.innerHTML += '<div style="margin-top:10px; color:#f59e0b;">Error creating function: ' + escapeHtml(e.message) + '</div>';
+            newInput.oninput = function(e) {
+                var triggerCount = parseInt(document.getElementById('eventCount').textContent) || 0;
+                triggerCount++;
+                document.getElementById('eventCount').textContent = triggerCount;
+            };
+        }
+        
+        // Add elements to container
+        inputContainer.appendChild(newInput);
+        inputContainer.appendChild(counterDiv);
+        inputContainer.appendChild(logDiv);
+        
+        currentInput = newInput;
+        
+        // Focus the input
+        setTimeout(function() {
+            if (newInput) newInput.focus();
+        }, 100);
+    }
+
+    function resetInput() {
+        inputContainer.innerHTML = '<span style="color:#64748b">No dynamic input yet. Click a button above to create one.</span>';
+        codePreview.innerHTML = '<span style="color:#64748b">Code preview will appear here</span>';
+        resultOutput.innerHTML = '<span>Reset. Click a payload button to create a new input with oninput injection.</span>';
+        currentInput = null;
+    }
+
+    function setPayload(payload) {
+        codeInput.value = payload;
+        createInputWithOninput();
+    }
+
+    // Button handlers
+    injectBtn.onclick = createInputWithOninput;
+    resetBtn.onclick = resetInput;
+    
+    document.getElementById('payload1').onclick = function() { setPayload('alert("XSS triggered! You typed: " + this.value)'); };
+    document.getElementById('payload2').onclick = function() { setPayload('alert("Your cookies: " + document.cookie)'); };
+    document.getElementById('payload3').onclick = function() { setPayload('console.log("Input changed to: " + this.value)'); };
+    document.getElementById('payload4').onclick = function() { setPayload('document.getElementById("resultOutput").innerHTML = "<div style=\'margin-top:10px; color:#10b981;\'>Current value: " + this.value + "</div>"'); };
+    document.getElementById('payload5').onclick = function() { setPayload('this.value = this.value.toUpperCase()'); };
+    document.getElementById('payload6').onclick = function() { setPayload('this.style.backgroundColor = this.value.length > 10 ? "#dc2626" : "#0f172a"'); };
+
+    // Set default example
+    codeInput.value = 'console.log("Input value changed to: " + this.value)';
+    
+    // Solution toggle
+    var visible = false;
+    solutionBtn.onclick = function() {
+        visible = !visible;
+        if (visible) {
+            solutionPanel.classList.add('show');
+            solutionBtn.textContent = 'Hide Solution';
+        } else {
+            solutionPanel.classList.remove('show');
+            solutionBtn.textContent = 'Show Solution';
+        }
+    };
+    
+    console.log('Lab #36 Ready - oninput Event Injection XSS');
+    console.log('Classic payload: <input oninput="alert(\'XSS\')">');
+    console.log('This triggers on EVERY keystroke!');
+</script>
+</body>
+</html>
