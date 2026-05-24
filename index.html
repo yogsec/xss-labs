@@ -6,6 +6,7 @@
   <title>XSS-Labs | Frontend XSS Challenges by Abhinav Singwal</title>
   <!-- Bootstrap 5 CSS + Icons + Google Fonts -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='50' font-size='80' text-anchor='middle' dominant-baseline='middle'%3E🐛%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
   <style>
@@ -293,7 +294,7 @@
       const gridContainer = categoryDiv.querySelector(`.lab-grid`);
       categoryLabs.forEach(lab => {
         const labCard = document.createElement('a');
-        labCard.href = `lab${lab.id}.html`;
+        labCard.href = `labs/lab${lab.id}.html`;
         labCard.className = 'lab-card';
         labCard.innerHTML = `
           <span class="lab-number">#${lab.number}</span>
