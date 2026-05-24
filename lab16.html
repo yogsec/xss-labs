@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSS Lab #16: history.state Storage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #facc15;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 { color: #facc15; }
+        .header a { color: #38bdf8; text-decoration: none; }
+        .lab-box {
+            background: #1e293b;
+            border-left: 5px solid #dc2626;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .badge {
+            background: #dc2626;
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+        .output {
+            background: #0f172a;
+            border: 2px solid #dc2626;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            min-height: 120px;
+        }
+        .info {
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        code {
+            background: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #facc15;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        .btn-danger {
+            background: #dc2626;
+        }
+        .btn-success {
+            background: #10b981;
+        }
+        .btn-secondary {
+            background: #475569;
+        }
+        .btn-warning {
+            background: #f59e0b;
+        }
+        .solution {
+            background: #0f172a;
+            border: 1px solid #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        .solution.show { display: block; }
+        .state-box {
+            background: #0a0f1a;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        input, textarea {
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            padding: 8px;
+            border-radius: 5px;
+            width: 100%;
+            margin: 5px 0;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+        .alert-box {
+            background: #facc1520;
+            border-left: 3px solid #facc15;
+            padding: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>XSS-Labs</h1>
+    <p>Created by <strong>Abhinav Singwal</strong> · <a href="https://github.com/yogsec">GitHub</a> · <a href="https://linktr.ee/abhinavsingwal">Linktree</a></p>
+    <p><a href="index.html" style="color: #facc15;">← Back to all labs</a></p>
+</div>
+
+<div class="lab-box">
+    <div class="badge">🔹 Lab #16 · Stored XSS</div>
+    <h2>history.state (pushState) Storage</h2>
+    <p><code>history.state</code> persists across page reloads and back/forward navigation.</p>
+    <p><strong>Goal:</strong> Click any red button below - it WILL pop an alert.</p>
+
+    <div class="alert-box">
+        <strong>TEST:</strong> Click "XSS Attack 1" → Alert pops.<br>
+        Then click "Reload Page" → Alert pops AGAIN!<br>
+        Then click "Back" then "Forward" → Alert pops each time!
+    </div>
+
+    <div class="info">
+        <strong>Navigation:</strong>
+        <div class="nav-buttons">
+            <button id="backBtn" class="btn-secondary">◀ Back</button>
+            <button id="forwardBtn" class="btn-secondary">Forward ▶</button>
+            <button id="reloadBtn" class="btn-warning">Reload Page</button>
+            <button id="clearStateBtn" class="btn-secondary">Clear State</button>
+        </div>
+    </div>
+
+    <div class="info">
+        <strong>Click these to push XSS payload to history.state:</strong><br><br>
+        <button id="xss1Btn" class="btn-danger">XSS Attack 1 (alert)</button>
+        <button id="xss2Btn" class="btn-danger">XSS Attack 2 (alert cookie)</button>
+        <button id="xss3Btn" class="btn-danger">XSS Attack 3 (prompt)</button>
+        <button id="normalBtn" class="btn-success">Push Normal Data</button>
+    </div>
+
+    <div class="info">
+        <strong>Custom JavaScript payload:</strong>
+        <textarea id="customPayload" placeholder='alert("XSS from history.state!")'></textarea>
+        <button id="pushCustomBtn">Push Custom Payload</button>
+    </div>
+
+    <div class="info">
+        <strong>Current history.state (safe display):</strong>
+        <div class="state-box" id="stateDisplay">(empty)</div>
+    </div>
+
+    <div class="output" id="vulnerableOutput">
+        <span style="color:#64748b">No history.state. Click a red button above.</span>
+    </div>
+
+    <details style="margin: 15px 0;">
+        <summary style="cursor: pointer; color: #facc15;">Hints</summary>
+        <ul>
+            <li>Click "XSS Attack 1" - alert pops immediately</li>
+            <li>Click "Reload Page" - alert pops again (state persists!)</li>
+            <li>Click "Back" then "Forward" - XSS triggers each time!</li>
+        </ul>
+    </details>
+
+    <button id="solutionBtn">Show Solution</button>
+    
+    <div id="solutionPanel" class="solution">
+        <h3>Solution</h3>
+        <p><strong>Working Payloads (JavaScript code):</strong></p>
+        <ul>
+            <li><code>alert('XSS')</code> - Simple alert</li>
+            <li><code>alert(document.cookie)</code> - Show cookies</li>
+            <li><code>prompt('Your name:')</code> - Prompt box</li>
+            <li><code>confirm('Are you hacked?')</code> - Confirm box</li>
+        </ul>
+        <p><strong>Vulnerable Code:</strong> <code>eval(history.state.data)</code> - Executes any JavaScript!</p>
+        <p><strong>Fix:</strong> NEVER use eval() with user input. Use textContent instead.</p>
+    </div>
+</div>
+
+<script>
+    var vulnerableOutput = document.getElementById('vulnerableOutput');
+    var stateDisplay = document.getElementById('stateDisplay');
+    var customPayload = document.getElementById('customPayload');
+    var solutionBtn = document.getElementById('solutionBtn');
+    var solutionPanel = document.getElementById('solutionPanel');
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    function getStateData() {
+        if (history.state && history.state.data) {
+            return history.state.data;
+        }
+        return null;
+    }
+
+    function updateDisplay() {
+        var stateData = getStateData();
+        
+        if (stateData && stateData !== '') {
+            stateDisplay.innerHTML = '<code style="color:#facc15;">' + escapeHtml(stateData) + '</code>';
+            
+            vulnerableOutput.innerHTML = '<span style="color:#facc15;">📎 history.state contains:</span><br><code style="display:block; margin-top:10px; background:#000; padding:10px; border-radius:5px;">' + escapeHtml(stateData) + '</code><div style="margin-top:10px; font-size:12px; color:#ef4444;">⚠️ Executing via eval()...</div>';
+            
+            //VULNERABLE - eval() with history.state
+            // This WILL execute any JavaScript code
+            try {
+                eval(stateData);
+            } catch(e) {
+                console.log('Eval error:', e);
+            }
+        } else {
+            stateDisplay.innerHTML = '(empty)';
+            vulnerableOutput.innerHTML = '<span style="color:#64748b;">No history.state. Click a red button above.</span>';
+        }
+    }
+
+    function pushState(data) {
+        var stateObj = { data: data };
+        var newUrl = window.location.pathname + '?d=' + encodeURIComponent(data.substring(0, 20));
+        history.pushState(stateObj, '', newUrl);
+        updateDisplay();
+    }
+
+    function clearState() {
+        history.replaceState(null, '', window.location.pathname);
+        updateDisplay();
+    }
+
+    // Button handlers
+    document.getElementById('xss1Btn').onclick = function() {
+        pushState('alert("XSS from history.state!")');
+    };
+    
+    document.getElementById('xss2Btn').onclick = function() {
+        pushState('alert("Your cookies: " + document.cookie)');
+    };
+    
+    document.getElementById('xss3Btn').onclick = function() {
+        pushState('prompt("XSS Attack! Enter your name:")');
+    };
+    
+    document.getElementById('normalBtn').onclick = function() {
+        pushState('NormalData123');
+    };
+    
+    document.getElementById('clearStateBtn').onclick = function() {
+        clearState();
+    };
+    
+    document.getElementById('pushCustomBtn').onclick = function() {
+        var val = customPayload.value.trim();
+        if (val) pushState(val);
+        else alert('Enter a payload');
+    };
+    
+    document.getElementById('reloadBtn').onclick = function() {
+        location.reload();
+    };
+    
+    document.getElementById('backBtn').onclick = function() {
+        history.back();
+    };
+    
+    document.getElementById('forwardBtn').onclick = function() {
+        history.forward();
+    };
+    
+    // Listen for back/forward navigation
+    window.addEventListener('popstate', function() {
+        updateDisplay();
+    });
+
+    // Solution toggle
+    var visible = false;
+    solutionBtn.onclick = function() {
+        visible = !visible;
+        if (visible) {
+            solutionPanel.classList.add('show');
+            solutionBtn.textContent = 'Hide Solution';
+        } else {
+            solutionPanel.classList.remove('show');
+            solutionBtn.textContent = 'Show Solution';
+        }
+    };
+
+    // Initial load
+    updateDisplay();
+    customPayload.value = 'alert("Custom XSS from history.state!")';
+    
+    console.log('Lab #16 Ready - history.state XSS using eval()');
+</script>
+</body>
+</html>
