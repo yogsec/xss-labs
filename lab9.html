@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSS Lab #9: localStorage Key Reflection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 2rem 1rem;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #334155;
+        }
+        .header h1 {
+            font-size: 2rem;
+            color: #facc15;
+        }
+        .header .author {
+            color: #94a3b8;
+            margin-top: 0.5rem;
+        }
+        .header .author a {
+            color: #38bdf8;
+            text-decoration: none;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1rem;
+            color: #38bdf8;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .lab-card {
+            background: #1e293b;
+            border-radius: 1rem;
+            padding: 1.8rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+        }
+        .lab-title {
+            font-size: 1.6rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #facc15;
+        }
+        .lab-badge {
+            display: inline-block;
+            background: #dc2626;
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .description {
+            color: #cbd5e1;
+            margin-bottom: 1.5rem;
+            border-left: 3px solid #facc15;
+            padding-left: 1rem;
+        }
+        .vulnerable-area {
+            background: #0f172a;
+            border: 2px solid #dc2626;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .vulnerable-label {
+            color: #ef4444;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .output-box {
+            background: #0a0f1a;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            min-height: 100px;
+            font-family: monospace;
+            word-break: break-all;
+            border: 1px solid #334155;
+            margin: 1rem 0;
+        }
+        .info-box {
+            background: #0a0f1a;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            font-size: 0.85rem;
+            font-family: monospace;
+        }
+        button {
+            background: #3b82f6;
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            margin-right: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        button:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+        .btn-danger {
+            background: #dc2626;
+        }
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+        .btn-secondary {
+            background: #475569;
+        }
+        .btn-secondary:hover {
+            background: #334155;
+        }
+        .btn-success {
+            background: #10b981;
+        }
+        .btn-success:hover {
+            background: #059669;
+        }
+        .btn-warning {
+            background: #f59e0b;
+        }
+        .btn-warning:hover {
+            background: #d97706;
+        }
+        .hints {
+            background: #0f172a;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin: 1rem 0;
+            border: 1px solid #334155;
+        }
+        .hints summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: #94a3b8;
+        }
+        .hints ul {
+            margin-top: 0.75rem;
+            margin-left: 1.5rem;
+            color: #cbd5e1;
+        }
+        .hints li {
+            margin: 0.5rem 0;
+        }
+        code {
+            background: #00000050;
+            padding: 0.2rem 0.4rem;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #facc15;
+        }
+        .solution-btn {
+            background: #10b981;
+            width: 100%;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            color: white;
+            transition: all 0.2s;
+            margin-top: 0.5rem;
+        }
+        .solution-btn:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+        .solution-panel {
+            background: #0f172a;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            border: 1px solid #10b981;
+            display: none;
+        }
+        .solution-panel.show {
+            display: block;
+        }
+        .solution-panel h3 {
+            color: #10b981;
+            margin-bottom: 1rem;
+        }
+        .solution-panel pre {
+            background: #00000070;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: monospace;
+            font-size: 0.8rem;
+            margin: 1rem 0;
+        }
+        hr {
+            border-color: #334155;
+            margin: 1rem 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            color: #64748b;
+            font-size: 0.8rem;
+        }
+        .storage-box {
+            background: #0a0f1a;
+            border: 1px solid #facc15;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            font-family: monospace;
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
+        input {
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            padding: 0.6rem;
+            border-radius: 0.5rem;
+            font-family: monospace;
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+        .key-list {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .key-item {
+            padding: 0.25rem 0;
+            border-bottom: 1px solid #334155;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a href="index.html" class="back-link">← Back to all labs</a>
+
+    <div class="header">
+        <h1>XSS-Labs</h1>
+        <div class="author">
+            Created by <strong>Abhinav Singwal</strong> · 
+            <a href="https://github.com/yogsec" target="_blank">GitHub</a> · 
+            <a href="https://linktr.ee/abhinavsingwal" target="_blank">Linktree</a>
+        </div>
+    </div>
+
+    <div class="lab-card">
+        <div class="lab-badge">🔹 Lab #9 · Stored XSS (localStorage)</div>
+        <div class="lab-title">localStorage Key Reflection</div>
+        <div class="description">
+            This lab reads a specific key from <code>localStorage</code> and injects its value into the DOM using <code>innerHTML</code> — NO sanitization.<br>
+            Data in <code>localStorage</code> persists across browser sessions.<br>
+            <strong>Goal:</strong> Execute JavaScript by setting a malicious value in localStorage.
+        </div>
+
+        <div class="vulnerable-area">
+            <div class="vulnerable-label">VULNERABLE TARGET (localStorage Reflection)</div>
+            
+            <!-- localStorage Controls -->
+            <div class="info-box">
+                <strong>localStorage Controls (key: "userData"):</strong><br><br>
+                <button id="setNormal" class="btn-success">Set Normal Value (JohnDoe)</button>
+                <button id="setXSS1" class="btn-danger">Set XSS: img onerror</button>
+                <button id="setXSS2" class="btn-danger">Set XSS: body onload</button>
+                <button id="setXSS3" class="btn-danger">Set XSS: svg onload</button>
+                <button id="deleteKey" class="btn-secondary">Delete Key</button>
+                <button id="clearAll" class="btn-warning">Clear All localStorage</button>
+            </div>
+
+            <!-- Custom Value Input -->
+            <div class="info-box">
+                <strong>Set Custom Value (key: "userData"):</strong>
+                <input type="text" id="customValue" placeholder="Enter any value (XSS payload here)" value='&lt;img src=x onerror=alert("XSS from localStorage!")&gt;'>
+                <button id="setCustom" class="btn-success" style="margin-top: 10px;">Set Custom Value</button>
+            </div>
+
+            <!-- Custom Key Input (to demonstrate any key reflection) -->
+            <div class="info-box">
+                <strong>Set ANY localStorage key (demonstrate key reflection):</strong>
+                <input type="text" id="customKey" placeholder="Key name" value="maliciousData">
+                <input type="text" id="customKeyValue" placeholder="Value (XSS payload)" value='&lt;img src=x onerror=alert("XSS from custom key!")&gt;'>
+                <button id="setAnyKey" class="btn-success" style="margin-top: 10px;">Set Custom Key/Value</button>
+            </div>
+
+            <!-- All localStorage Keys Display -->
+            <div class="info-box">
+                <strong>All localStorage keys & values:</strong>
+                <div class="storage-box key-list" id="allStorageDisplay">
+                    <span style="color:#64748b">No data in localStorage</span>
+                </div>
+            </div>
+
+            <!-- Reflected Output (VULNERABLE - reflects "userData" key) -->
+            <div class="output-box" id="vulnerableOutput">
+                <span style="color:#64748b">No value in localStorage key "userData" yet...</span>
+            </div>
+
+            <div class="info-box" style="background: #1e293b;">
+                <strong>How this works:</strong><br>
+                • The page reads <code>localStorage.getItem('userData')</code><br>
+                • It injects the value using <code>innerHTML</code> (VULNERABLE!)<br>
+                • If the value contains HTML/JavaScript, it will execute when reflected.<br>
+                • Data persists even after closing/reopening the browser!
+            </div>
+        </div>
+
+        <details class="hints">
+            <summary>Hints (click to expand)</summary>
+            <ul>
+                <li>The vulnerable code reads <code>localStorage.getItem('userData')</code> and uses <code>innerHTML</code>.</li>
+                <li>Click "Set XSS: img onerror" - it WILL pop an alert immediately.</li>
+                <li>Close and reopen the page - the XSS will trigger again because data persists!</li>
+                <li>Try setting a custom value with <code>&lt;svg onload=alert(1)&gt;</code>.</li>
+                <li>This is a real attack vector - localStorage is often used to store user preferences that get reflected.</li>
+            </ul>
+        </details>
+
+        <button id="solutionBtn" class="solution-btn">Show Solution</button>
+        
+        <div id="solutionPanel" class="solution-panel">
+            <h3>Solution & Explanation</h3>
+            
+            <p><strong>Working Payloads (as localStorage values):</strong></p>
+            <ul>
+                <li><code>&lt;img src=x onerror=alert('XSS')&gt;</code> — Image error event</li>
+                <li><code>&lt;body onload=alert(document.cookie)&gt;</code> — Body onload</li>
+                <li><code>&lt;svg onload=alert(1)&gt;</code> — SVG onload</li>
+                <li><code>&lt;script&gt;alert('localStorage XSS')&lt;/script&gt;</code> — Script tag</li>
+            </ul>
+            
+            <p><strong>Real-world attack scenario:</strong></p>
+            <ol style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                <li>Attacker finds a website that reflects localStorage values without sanitization.</li>
+                <li>Attacker tricks victim into setting a malicious localStorage value (via XSS or social engineering).</li>
+                <li>The website reads and reflects the value using <code>innerHTML</code> → XSS executes!</li>
+                <li>This can lead to persistent XSS across multiple pages and sessions.</li>
+            </ol>
+            
+            <p><strong>Vulnerable Code:</strong></p>
+            <pre>// VULNERABLE: Reading localStorage and injecting with innerHTML
+let userData = localStorage.getItem('userData');
+document.getElementById('output').innerHTML = userData;</pre>
+            
+            <p><strong>How to Fix:</strong></p>
+            <pre>// FIX #1: Use textContent instead of innerHTML
+let userData = localStorage.getItem('userData');
+document.getElementById('output').textContent = userData;
+
+// FIX #2: Escape HTML entities before inserting
+function escapeHtml(str) {
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+document.getElementById('output').innerHTML = escapeHtml(userData);</pre>
+            
+            <hr>
+            <p><strong>Key Point:</strong> localStorage is persistent and can be controlled by attackers via XSS. Never trust stored data and always sanitize before using in HTML.</p>
+            <p style="color:#888; font-size:12px;">Educational purpose only — runs entirely in your browser.</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        ⚡ XSS-Labs | Lab #9: localStorage Key Reflection (Stored XSS)
+    </div>
+</div>
+
+<script>
+    const vulnerableOutput = document.getElementById('vulnerableOutput');
+    const allStorageDisplay = document.getElementById('allStorageDisplay');
+    const solutionBtn = document.getElementById('solutionBtn');
+    const solutionPanel = document.getElementById('solutionPanel');
+    const customValueInput = document.getElementById('customValue');
+    const customKeyInput = document.getElementById('customKey');
+    const customKeyValueInput = document.getElementById('customKeyValue');
+
+    const STORAGE_KEY = 'userData';
+
+    // Display all localStorage keys and values
+    function displayAllStorage() {
+        if (localStorage.length === 0) {
+            allStorageDisplay.innerHTML = '<span style="color:#64748b">No data in localStorage</span>';
+            return;
+        }
+        
+        let html = '';
+        for (let i = 0; i < localStorage.length; i++) {
+            let key = localStorage.key(i);
+            let value = localStorage.getItem(key);
+            html += `<div class="key-item"><code>${escapeHtml(key)}</code> = <code style="color:#facc15;">${escapeHtml(value)}</code></div>`;
+        }
+        allStorageDisplay.innerHTML = html;
+    }
+
+    // VULNERABLE FUNCTION: Reads localStorage key and injects via innerHTML
+    function reflectStoredData() {
+        let storedValue = localStorage.getItem(STORAGE_KEY);
+        
+        //VULNERABLE SINK
+        // This innerHTML injection with localStorage data is the XSS vulnerability
+        if (storedValue && storedValue !== '') {
+            vulnerableOutput.innerHTML = `
+                <span style="color:#facc15;">Reflected value from localStorage key "${STORAGE_KEY}":</span><br>
+                <code style="display:block; margin-top:8px; background:#000; padding:8px; border-radius:4px; word-break:break-all;">${storedValue}</code>
+                <div style="margin-top:8px; font-size:11px; color:#ef4444;">VULNERABLE: innerHTML with unsanitized localStorage data!</div>
+            `;
+        } else {
+            vulnerableOutput.innerHTML = `
+                <span style="color:#64748b;">No value found for key "${STORAGE_KEY}" in localStorage.</span>
+                <div style="margin-top:8px; font-size:11px;">Click the buttons above to set values with XSS payloads.</div>
+                <div style="margin-top:5px; font-size:11px;">Try setting a value and then refreshing the page - it persists!</div>
+            `;
+        }
+    }
+
+    // Set value in localStorage and update
+    function setLocalStorageValue(key, value) {
+        localStorage.setItem(key, value);
+        if (key === STORAGE_KEY) {
+            reflectStoredData();
+        }
+        displayAllStorage();
+        console.log(`localStorage set: ${key} = ${value}`);
+    }
+
+    // Delete specific key
+    function deleteKey(key) {
+        localStorage.removeItem(key);
+        if (key === STORAGE_KEY) {
+            reflectStoredData();
+        }
+        displayAllStorage();
+        console.log(`localStorage key deleted: ${key}`);
+    }
+
+    // Clear all localStorage
+    function clearAllStorage() {
+        localStorage.clear();
+        reflectStoredData();
+        displayAllStorage();
+        console.log('All localStorage cleared');
+    }
+
+    // Button handlers
+    document.getElementById('setNormal').onclick = () => {
+        setLocalStorageValue(STORAGE_KEY, 'JohnDoe123');
+    };
+    
+    document.getElementById('setXSS1').onclick = () => {
+        setLocalStorageValue(STORAGE_KEY, '<img src=x onerror=alert("XSS from localStorage! The attacker stored this payload.")>');
+        setTimeout(() => {
+            alert('XSS payload stored in localStorage! The alert should appear now.');
+        }, 50);
+    };
+    
+    document.getElementById('setXSS2').onclick = () => {
+        setLocalStorageValue(STORAGE_KEY, '<body onload=alert("XSS: Body onload from localStorage!")>');
+        setTimeout(() => {
+            alert('XSS payload stored! Check the alert above.');
+        }, 50);
+    };
+    
+    document.getElementById('setXSS3').onclick = () => {
+        setLocalStorageValue(STORAGE_KEY, '<svg onload=alert("XSS: SVG onload from localStorage!")>');
+        setTimeout(() => {
+            alert('XSS payload stored! The alert will trigger.');
+        }, 50);
+    };
+    
+    document.getElementById('deleteKey').onclick = () => {
+        deleteKey(STORAGE_KEY);
+    };
+    
+    document.getElementById('clearAll').onclick = () => {
+        if (confirm('This will delete ALL localStorage data for this domain. Continue?')) {
+            clearAllStorage();
+        }
+    };
+    
+    document.getElementById('setCustom').onclick = () => {
+        let customValue = customValueInput.value;
+        if (customValue && customValue.trim() !== '') {
+            setLocalStorageValue(STORAGE_KEY, customValue);
+            setTimeout(() => {
+                alert(`Custom value stored! ${customValue.includes('<') ? 'XSS payload will execute now.' : 'Value updated successfully.'}`);
+            }, 50);
+        } else {
+            alert('Please enter a value');
+        }
+    };
+    
+    document.getElementById('setAnyKey').onclick = () => {
+        let key = customKeyInput.value.trim();
+        let value = customKeyValueInput.value;
+        
+        if (!key) {
+            alert('Please enter a key name');
+            return;
+        }
+        
+        setLocalStorageValue(key, value);
+        alert(`Key "${key}" set! ${value.includes('<') ? 'This will NOT execute unless reflected by another page.' : ''}`);
+    };
+
+    // Allow Enter key in custom value input
+    customValueInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            document.getElementById('setCustom').click();
+        }
+    });
+
+    // Helper to escape for display
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // Toggle solution
+    let solutionVisible = false;
+    solutionBtn.onclick = () => {
+        solutionVisible = !solutionVisible;
+        if (solutionVisible) {
+            solutionPanel.classList.add('show');
+            solutionBtn.textContent = 'Hide Solution';
+            solutionBtn.style.background = '#475569';
+        } else {
+            solutionPanel.classList.remove('show');
+            solutionBtn.textContent = 'Show Solution';
+            solutionBtn.style.background = '#10b981';
+        }
+    };
+
+    // Initial load
+    reflectStoredData();
+    displayAllStorage();
+
+    console.log('Lab #9 Ready - localStorage Key Reflection XSS');
+    console.log('Current localStorage:', localStorage);
+    console.log('Try: Click "Set XSS" buttons, then refresh the page - the XSS persists!');
+</script>
+</body>
+</html>

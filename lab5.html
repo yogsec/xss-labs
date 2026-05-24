@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSS Lab #5: User-Agent Reflection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #facc15;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 { color: #facc15; }
+        .header a { color: #38bdf8; text-decoration: none; }
+        .lab-box {
+            background: #1e293b;
+            border-left: 5px solid #dc2626;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .badge {
+            background: #dc2626;
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+        .output {
+            background: #0f172a;
+            border: 2px solid #dc2626;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            min-height: 100px;
+        }
+        .info {
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        code {
+            background: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #facc15;
+        }
+        button {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        .btn-danger {
+            background: #dc2626;
+        }
+        .solution {
+            background: #0f172a;
+            border: 1px solid #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        .solution.show { display: block; }
+        .real-ua {
+            background: #000;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>XSS-Labs</h1>
+    <p>Created by <strong>Abhinav Singwal</strong> · <a href="https://github.com/yogsec">GitHub</a> · <a href="https://linktr.ee/abhinavsingwal">Linktree</a></p>
+    <p><a href="index.html" style="color: #facc15;">← Back to all labs</a></p>
+</div>
+
+<div class="lab-box">
+    <div class="badge">Lab #5 · Reflected XSS</div>
+    <h2>User-Agent Reflection</h2>
+    <p>This page reads your browser's <code>User-Agent</code> string and injects it into the DOM using <code>innerHTML</code> - NO sanitization.</p>
+    <p><strong>Goal:</strong> Find a way to execute JavaScript through the User-Agent.</p>
+
+    <div class="output" id="vulnerableOutput">
+        Loading your User-Agent...
+    </div>
+
+    <div class="info">
+        <strong>Your actual User-Agent:</strong><br>
+        <div class="real-ua" id="realUserAgent"></div>
+    </div>
+
+    <div class="info">
+        <strong>Note:</strong> In a real attack, you would need to modify your browser's User-Agent header using Developer Tools (F12 → Network conditions) or a proxy like Burp Suite.
+    </div>
+
+    <details style="margin: 15px 0;">
+        <summary style="cursor: pointer; color: #facc15;">Hints</summary>
+        <ul style="margin-top: 10px; margin-left: 20px;">
+            <li>Open Developer Tools (F12)</li>
+            <li>Go to "Network conditions" or "More tools → Network conditions"</li>
+            <li>Uncheck "Use browser default" and enter a malicious User-Agent</li>
+            <li>Refresh the page with your malicious User-Agent</li>
+        </ul>
+    </details>
+
+    <button id="solutionBtn">Show Solution</button>
+    
+    <div id="solutionPanel" class="solution">
+        <h3>Solution</h3>
+        <p><strong>How to exploit:</strong></p>
+        <ol>
+            <li>Open Chrome/Edge Developer Tools (F12)</li>
+            <li>Click the menu (⋮) → More tools → Network conditions</li>
+            <li>Uncheck "Use browser default" under User Agent</li>
+            <li>Enter: <code>&lt;img src=x onerror=alert('XSS')&gt;</code></li>
+            <li>Refresh the page</li>
+        </ol>
+        <p><strong>Working payload:</strong> <code>&lt;img src=x onerror=alert(document.cookie)&gt;</code></p>
+        <p><strong>Vulnerable code:</strong> <code>document.getElementById('output').innerHTML = navigator.userAgent;</code></p>
+        <p><strong>Fix:</strong> Use <code>textContent</code> instead of <code>innerHTML</code></p>
+    </div>
+</div>
+
+<script>
+    const output = document.getElementById('vulnerableOutput');
+    const realUserAgentSpan = document.getElementById('realUserAgent');
+    const solutionBtn = document.getElementById('solutionBtn');
+    const solutionPanel = document.getElementById('solutionPanel');
+
+    // Get the real User-Agent
+    const userAgent = navigator.userAgent;
+    realUserAgentSpan.textContent = userAgent;
+
+    // VULNERABLE: Injecting User-Agent directly with innerHTML
+    // This is the XSS vulnerability
+    output.innerHTML = `
+        <span style="color:#facc15;">Your User-Agent (reflected unsafely):</span><br>
+        <code style="display:block; margin-top:10px;">${userAgent}</code>
+        <div style="margin-top:10px; font-size:12px; color:#ef4444;">This is VULNERABLE to XSS if User-Agent contains malicious code!</div>
+    `;
+
+    // Toggle solution
+    let showSolution = false;
+    solutionBtn.onclick = function() {
+        showSolution = !showSolution;
+        if (showSolution) {
+            solutionPanel.classList.add('show');
+            solutionBtn.textContent = 'Hide Solution';
+        } else {
+            solutionPanel.classList.remove('show');
+            solutionBtn.textContent = 'Show Solution';
+        }
+    }
+
+    console.log('Lab #5 Ready - Your User-Agent is:', userAgent);
+    console.log('To test XSS: Modify User-Agent in DevTools → Network conditions');
+</script>
+</body>
+</html>
