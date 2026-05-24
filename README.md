@@ -1,9 +1,6 @@
 # XSS-Labs
 
 A comprehensive collection of 39 hands-on Cross-Site Scripting (XSS) labs for security enthusiasts, developers, and penetration testers.
-
-Repository: github.com/yogsec/xss-labs
-
 ---
 
 ## Overview
@@ -19,8 +16,6 @@ All labs run entirely in your browser. No backend server is required.
 The labs are hosted online via GitHub Pages. Access all 39 labs at:
 
    https://yogsec.github.io/xss-labs/
-
-No installation is required. All labs work directly in your browser.
 
 ---
 
