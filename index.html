@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XSS-Labs | Frontend XSS Challenges by Abhinav Singwal</title>
+  <!-- Bootstrap 5 CSS + Icons + Google Fonts -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: 'Inter', sans-serif;
+    }
+    body {
+      background: #f0f2f5;
+      scroll-behavior: smooth;
+    }
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #e9ecef;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2c6e5c;
+      border-radius: 10px;
+    }
+    .navbar-brand {
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+    .hero-gradient {
+      background: linear-gradient(135deg, #0a2f2a 0%, #124e45 100%);
+      color: white;
+      border-bottom: 3px solid #ffc107;
+    }
+    .badge-xss {
+      background-color: #dc3545;
+      font-weight: 600;
+      padding: 8px 16px;
+      letter-spacing: 0.3px;
+    }
+    .category-card {
+      background: white;
+      border-radius: 28px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      overflow: hidden;
+      border: 1px solid rgba(0, 0, 0, 0.04);
+      margin-bottom: 2rem;
+    }
+    .category-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.12);
+    }
+    .category-header {
+      background: #1e2f3a;
+      color: white;
+      padding: 1rem 1.5rem;
+      border-bottom: 3px solid #ffb347;
+    }
+    .category-header h3 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .category-badge {
+      background: rgba(255,255,240,0.2);
+      border-radius: 40px;
+      padding: 4px 12px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .lab-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 12px;
+      padding: 1.5rem;
+    }
+    .lab-card {
+      background: #ffffff;
+      border: 1px solid #e9ecef;
+      border-radius: 20px;
+      padding: 12px 8px;
+      text-align: center;
+      transition: all 0.2s;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+      text-decoration: none;
+      display: block;
+    }
+    .lab-card:hover {
+      background: #fef9e6;
+      border-color: #ffc107;
+      transform: scale(1.02);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    }
+    .lab-number {
+      font-weight: 800;
+      font-size: 1.2rem;
+      color: #dc3545;
+      display: block;
+      line-height: 1.2;
+    }
+    .lab-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #1e2f3a;
+      margin-top: 6px;
+      display: block;
+    }
+    .lab-status {
+      font-size: 0.65rem;
+      color: #28a745;
+      margin-top: 5px;
+      display: block;
+    }
+    .footer-links a {
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .footer-links a:hover {
+      opacity: 0.8;
+      text-decoration: underline;
+    }
+    .back-to-top {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      background: #124e45;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      transition: 0.2s;
+      z-index: 999;
+      border: none;
+    }
+    .back-to-top:hover {
+      background: #ffc107;
+      color: #1e2f3a;
+      transform: translateY(-3px);
+    }
+    @media (max-width: 768px) {
+      .lab-grid {
+        grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
+        gap: 10px;
+        padding: 1rem;
+      }
+      .category-header h3 {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Navigation with GitHub & Linktree -->
+<nav class="navbar navbar-dark bg-dark shadow-sm sticky-top">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="index.html">
+      <i class="bi bi-bug-fill text-danger me-2"></i>XSS-Labs
+    </a>
+    <div class="d-flex gap-3 align-items-center">
+      <a href="https://github.com/yogsec" target="_blank" class="text-white text-decoration-none small fw-semibold">
+        <i class="bi bi-github"></i> yogsec
+      </a>
+      <a href="https://linktr.ee/abhinavsingwal" target="_blank" class="text-white-50 text-decoration-none small">
+        <i class="bi bi-tree-fill"></i> abhinavsingwal
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero Section with creator name -->
+<div class="hero-gradient py-4">
+  <div class="container">
+    <div class="d-flex flex-wrap justify-content-between align-items-center">
+      <div>
+        <h1 class="display-5 fw-bold"><i class="bi bi-shield-shaded me-2"></i>XSS Labs</h1>
+        <p class="lead mb-1">Master Cross‑Site Scripting • Frontend Only • Interactive Practice Hub</p>
+        <div class="mt-2 d-flex flex-wrap gap-2">
+          <span class="badge bg-warning text-dark"><i class="bi bi-code-slash"></i> HTML + Bootstrap + JS</span>
+          <span class="badge bg-info text-dark"><i class="bi bi-grid-3x3-gap-fill"></i>Labs</span>
+        </div>
+      </div>
+      <div class="mt-2 mt-md-0">
+        <span class="badge badge-xss px-3 py-2 fs-6"><i class="bi bi-flag-fill"></i> #XSS-Challenge</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- main container: all labs grid -->
+<div class="container my-5">
+  <div id="labsRoot"></div>
+</div>
+
+<!-- Footer -->
+<footer class="bg-dark text-white-50 py-4 mt-4 border-top border-secondary">
+  <div class="container text-center">
+    <div class="footer-links mb-2">
+      <a href="https://github.com/yogsec/xss-labs" target="_blank" class="text-white-50 mx-2"><i class="bi bi-github"></i> Repository</a>
+      <span class="mx-1">•</span>
+      <a href="https://linktr.ee/abhinavsingwal" target="_blank" class="text-white-50 mx-2"><i class="bi bi-link-45deg"></i> Linktree</a>
+    </div>
+    <p class="small mb-0"><i class="bi bi-exclamation-triangle-fill text-warning"></i>Educational purpose only — simulate XSS vulnerabilities inside your browser.</p>
+    <p class="small mt-1 mb-0">© 2026 Abhinav Singwal · XSS labs</p>
+  </div>
+</footer>
+
+<button class="back-to-top" id="backToTopBtn" title="Back to top">
+  <i class="bi bi-arrow-up-short fs-3"></i>
+</button>
+
+<script>
+  // Categories
+  const categories = [
+    { id: "reflected", name: "🔹 Reflected XSS (Client-Side Simulation)", icon: "bi bi-arrow-return-left" },
+    { id: "stored", name: "🔹 Stored XSS (Frontend Storage)", icon: "bi bi-database" },
+    { id: "dom", name: "🔹 DOM-Based XSS", icon: "bi bi-browser-edge" },
+    { id: "events", name: "🔹 Event Handler XSS", icon: "bi bi-mouse" },
+    { id: "attr", name: "🔹 HTML Attribute Injection", icon: "bi bi-tag" },
+    { id: "context", name: "🔹 Context-Specific Breakouts", icon: "bi bi-code-square" },
+    { id: "encoding", name: "🔹 Encoding Bypass Labs", icon: "bi bi-transform" },
+    { id: "csp", name: "🔹 CSP & Sandbox Simulation", icon: "bi bi-shield-lock" },
+    { id: "advanced", name: "🔹 Advanced Frontend XSS", icon: "bi bi-lightning-charge" },
+    { id: "misc", name: "🔹 Misc / Creative Frontend XSS Labs", icon: "bi bi-stars" }
+  ];
+
+  // Lab titles for first 39 labs only
+  const labTitles = [
+    "GET parameter reflection", "POST param sessionStorage", "URL hash reflection", "Referer header mock", "User-Agent reflection",
+    "Cookie value reflection", "document.title injection", "window.name reflection", "localStorage key reflection", "sessionStorage value reflection",
+    "localStorage stored + display", "sessionStorage reload inject", "IndexedDB read & render", "Cookie injection XSS", "window.name cross-page",
+    "history.state injection", "sessionStorage search filter", "localStorage JSON injection", "Base64 decode & inject", "multi-key local storage",
+    "document.write + location.search", "innerHTML unsanitized", "insertAdjacentHTML", "outerHTML replacement", "eval() user string",
+    "setTimeout(userString)", "setInterval injection", "Function() constructor", "javascript: pseudo", "dynamic script src injection",
+    "onclick injection", "onmouseover XSS", "img onerror trigger", "body onload payload", "onfocus autofocus",
+    "oninput injection", "onchange select XSS", "onkeyup injection", "onsubmit form hijack"
+  ];
+
+  // Build all labs - Only 39 labs total
+  let allLabs = [];
+  for (let i = 1; i <= 39; i++) {
+    let catIdx = 0;
+    if (i <= 10) catIdx = 0;
+    else if (i <= 20) catIdx = 1;
+    else if (i <= 30) catIdx = 2;
+    else catIdx = 3;
+    
+    allLabs.push({
+      id: i,
+      number: i,
+      title: labTitles[i-1],
+      categoryId: categories[catIdx].id,
+      isReady: true
+    });
+  }
+
+  // Render dashboard with links
+  function renderDashboard() {
+    const root = document.getElementById('labsRoot');
+    if (!root) return;
+    root.innerHTML = '';
+    
+    categories.forEach(cat => {
+      const categoryLabs = allLabs.filter(lab => lab.categoryId === cat.id);
+      if (categoryLabs.length === 0) return;
+      
+      const categoryDiv = document.createElement('div');
+      categoryDiv.className = 'category-card';
+      categoryDiv.innerHTML = `
+        <div class="category-header">
+          <h3>
+            <i class="${cat.icon}"></i> 
+            ${cat.name}
+            <span class="category-badge ms-2">${categoryLabs.length} challenges</span>
+          </h3>
+        </div>
+        <div class="lab-grid" id="grid-${cat.id}"></div>
+      `;
+      root.appendChild(categoryDiv);
+      
+      const gridContainer = categoryDiv.querySelector(`.lab-grid`);
+      categoryLabs.forEach(lab => {
+        const labCard = document.createElement('a');
+        labCard.href = `lab${lab.id}.html`;
+        labCard.className = 'lab-card';
+        labCard.innerHTML = `
+          <span class="lab-number">#${lab.number}</span>
+          <span class="lab-title">${lab.title}</span>
+          <span class="lab-status"><i class="bi bi-check-circle-fill"></i> Ready</span>
+        `;
+        gridContainer.appendChild(labCard);
+      });
+    });
+  }
+  
+  // Initialize
+  function initPage() {
+    renderDashboard();
+    
+    // back to top button
+    const backBtn = document.getElementById('backToTopBtn');
+    if (backBtn) {
+      backBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+  }
+  
+  window.addEventListener('DOMContentLoaded', initPage);
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
