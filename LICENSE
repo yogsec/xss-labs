@@ -1,21 +1,35 @@
-MIT License
+YogSec XSS Labs License
 
-Copyright (c) 2026 Abhinav Singwal (yogsec)
+Copyright (c) 2026 Abhinav Singwal (YogSec)
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+All rights reserved.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+This repository is provided for educational and evaluation purposes only.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Permissions:
+
+* Individuals may view, fork, and use this project for personal learning and non-commercial educational purposes.
+* Cybersecurity instructors and educational institutions may use the public version of this project for classroom demonstrations and training sessions, provided proper attribution is given to YogSec.
+
+Restrictions:
+
+* Commercial use of this project, in whole or in part, is prohibited without prior written permission from the copyright holder.
+* Selling, sublicensing, hosting, redistributing, or offering this project as a paid product or service is prohibited.
+* Creating commercial derivatives based on this project is prohibited without written authorization.
+* Removing copyright notices, author information, or branding is prohibited.
+* Using this project as part of a commercial training platform, SaaS product, LMS, or cybersecurity course sold for profit is prohibited without a commercial license.
+
+Commercial Licensing:
+
+Organizations interested in using, modifying, integrating, or distributing this project for commercial purposes must obtain a separate commercial license from YogSec.
+
+For commercial licensing inquiries:
+
+Email: [abhinavsingwal@gmail.com](mailto:abhinavsingwal@gmail.com)
+Website: https://yogsec.github.io/portfolio/
+
+Disclaimer:
+
+This software is provided "as is", without warranty of any kind, express or implied. The author shall not be liable for any claim, damages, or other liability arising from the use of this software.
+
+By using this project, you agree to the terms of this license.
