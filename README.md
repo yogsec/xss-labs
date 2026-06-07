@@ -14,9 +14,9 @@ All labs run entirely in your browser. No backend server is required.
 
 ---
 
-## Live Demo
+## Try it here
 
-The labs are hosted online via GitHub Pages. Access all 39 labs at:
+The labs are hosted online via GitHub Pages. Access all labs at:
 
    https://yogsec.github.io/xss-labs/
 
