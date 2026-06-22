@@ -1,16 +1,8 @@
 # xss-labs
 
-A comprehensive collection of hands-on Cross-Site Scripting (XSS) labs for security enthusiasts, developers, and penetration testers.
+xss-labs is a frontend-only training that demonstrates various XSS vulnerabilities in a safe, controlled environment. Each lab focuses on a specific XSS vector, allowing you to understand how these attacks work and how to prevent them. All labs run entirely in your browser. No backend server is required.
 
 ![Screenshot](https://github.com/yogsec/xss-labs/blob/main/Screenshot%20From%202026-05-24%2014-07-52.png?raw=true)
-
----
-
-## Overview
-
-xss-labs is a frontend-only training that demonstrates various XSS vulnerabilities in a safe, controlled environment. Each lab focuses on a specific XSS vector, allowing you to understand how these attacks work and how to prevent them.
-
-All labs run entirely in your browser. No backend server is required.
 
 ---
 
@@ -18,7 +10,7 @@ All labs run entirely in your browser. No backend server is required.
 
 The labs are hosted online via GitHub Pages. Access all labs at:
 
-   https://yogsec.github.io/xss-labs/
+   [https://yogsec.github.io/xss-labs/](https://yogsec.github.io/xss-labs/)
 
 ---
 
@@ -90,18 +82,6 @@ The labs are hosted online via GitHub Pages. Access all labs at:
 
 ---
 
-## Lab Structure
-
-Each lab file follows a consistent pattern:
-
-- Vulnerable code demonstration
-- Interactive input area
-- Real-time output reflection
-- Collapsible hints section
-- Solution panel with explanation and fix
-
----
-
 ## Educational Purpose
 
 These labs are designed for:
@@ -115,24 +95,9 @@ All labs run locally in your browser. No malicious code is transmitted externall
 
 ---
 
-## Technologies Used
-
-- HTML5
-- CSS3
-- Vanilla JavaScript
-- Bootstrap 5
-
----
-
 ## Author
 
-Created and maintained by Abhinav Singwal (yogsec)
+Created and maintained by Abhinav Singwal
 
-- GitHub: github.com/yogsec
-- Linktree: linktr.ee/abhinavsingwal
-
----
-
-## License
-
-Educational use only. Use responsibly.
+- GitHub: [https://github.com/yogsec](https://github.com/yogsec)
+- Linktree: [https://linktr.ee/abhinavsingwal](https://linktr.ee/abhinavsingwal)
