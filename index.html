@@ -1,14 +1,114 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>XSS-Labs | Frontend XSS Challenges by Abhinav Singwal</title>
-  <!-- Bootstrap 5 CSS + Icons + Google Fonts -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='50' font-size='80' text-anchor='middle' dominant-baseline='middle'%3E🐛%3C/text%3E%3C/svg%3E">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+
+  <!-- Primary SEO -->
+  <title>XSS Labs - Free Interactive Cross Site Scripting Training Platform</title>
+
+  <meta name="description"
+        content="Practice Cross Site Scripting (XSS) through interactive xss labs. Learn reflected XSS, stored XSS, DOM XSS, filter bypasses, payload crafting, and web security testing techniques used by bug bounty hunters and penetration testers.">
+
+  <meta name="author" content="Abhinav Singwal">
+
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+
+  <meta name="googlebot" content="index,follow">
+
+  <meta name="bingbot" content="index,follow">
+
+  <meta name="keywords"
+        content="xss labs,xss practice,cross site scripting labs,dom xss,stored xss,reflected xss,xss training,bug bounty labs,web security labs,cybersecurity training,ethical hacking,xss playground">
+
+  <!-- Canonical -->
+  <link rel="canonical"
+        href="https://yogsec.github.io/xss-labs/">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+
+  <meta property="og:title"
+        content="XSS Labs - Interactive Cross Site Scripting Challenges">
+
+  <meta property="og:description"
+        content="Learn and practice XSS through 39 interactive labs designed for security researchers, students and bug bounty hunters.">
+
+  <meta property="og:url"
+        content="https://yogsec.github.io/xss-labs/">
+
+  <meta property="og:site_name"
+        content="XSS Labs">
+
+  <meta property="og:image"
+        content="https://yogsec.github.io/xss-labs/images/og-image.png">
+
+  <meta property="og:image:width" content="1200">
+
+  <meta property="og:image:height" content="630">
+
+  <!-- Twitter / X -->
+  <meta name="twitter:card" content="summary_large_image">
+
+  <meta name="twitter:title"
+        content="XSS Labs - Free XSS Training">
+
+  <meta name="twitter:description"
+        content="Practice reflected, stored and DOM XSS through hands-on labs.">
+
+  <meta name="twitter:image"
+        content="https://yogsec.github.io/xss-labs/images/og-image.png">
+
+  <!-- Theme -->
+  <meta name="theme-color" content="#124e45">
+
+  <!-- Language -->
+  <meta http-equiv="content-language" content="en">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png">
+
+  <!-- Bootstrap -->
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
+
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"EducationalWebSite",
+    "name":"XSS Labs",
+    "url":"https://yogsec.github.io/xss-labs/",
+    "description":"Cross Site Scripting training platform.",
+    "inLanguage":"en",
+    "educationalUse":"training",
+    "learningResourceType":"Interactive Resource",
+    "author":{
+      "@type":"Person",
+      "name":"Abhinav Singwal"
+    },
+    "publisher":{
+      "@type":"Organization",
+      "name":"YogSec"
+    }
+  }
+  </script>
+
+
+
   <style>
     * {
       font-family: 'Inter', sans-serif;
