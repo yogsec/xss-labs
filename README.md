@@ -1,6 +1,6 @@
 # xss-labs
 
-### xss-labs is a frontend-only training that demonstrates various XSS vulnerabilities in a safe, controlled environment. Each lab focuses on a specific XSS vector, allowing you to understand how these attacks work and how to prevent them. All labs run entirely in your browser. No backend server is required.
+xss-labs is a frontend-only training that demonstrates various XSS vulnerabilities in a safe, controlled environment. Each lab focuses on a specific XSS vector, allowing you to understand how these attacks work and how to prevent them. All labs run entirely in your browser. No backend server is required.
 
 ![Screenshot](https://github.com/yogsec/xss-labs/blob/main/Screenshot%20From%202026-05-24%2014-07-52.png?raw=true)
 
